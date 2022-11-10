@@ -4,7 +4,6 @@
 namespace App\Models;
 
 
-
 class Product
 {
     public $id = '';
@@ -14,7 +13,7 @@ class Product
     public $shortDescription = '';
     public $description = '';
     public $published = 'выставлен';
-    public $isDiscount  = 'да';
+    public $isDiscount = 'да';
     public $metaTitle = '';
     public $metaKeywords = '';
     public $metaDescription = '';
@@ -75,7 +74,8 @@ class Product
         'Параметр: Ссылка на донер'
     ];
 
-    public function exportCsv($file){
+    public function exportCsv($file)
+    {
         $data = (array) $this;
         fputcsv($file, $data, "\t");
     }
