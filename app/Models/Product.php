@@ -30,7 +30,7 @@ class Product
     public $artikul = '';
     public $barcode = '';
     public $variantDimensions = '';
-    public $price = '';
+    public $price = 1000;
     public $oldPrice = '';
     public $netto = '';
     public $count = 100;

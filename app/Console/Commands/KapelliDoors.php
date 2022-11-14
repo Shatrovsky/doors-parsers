@@ -23,6 +23,29 @@ class KapelliDoors extends Command
      * @var string
      */
     protected $description = 'Парсинг https://kapelli-doors.ru/';
+
+    protected $urls = [
+        'https://kapelli-doors.ru/catalog/kapelli-classic/' => [
+            'additional_image' => 'https://static.insales-cdn.com/r/C__OH_4o4QE/rs:fit:1000:0:1/q:100/plain/images/products/1/866/616366946/Kapelli-doors.png',
+            'main_name' => 'Дверь влагостойкая пластиковая ',
+            'file' => 'kapelli-classic.csv'
+        ],
+        'https://kapelli-doors.ru/catalog/kapelli-multicolor/' => [
+            'additional_image' => 'https://static.insales-cdn.com/r/fPEg7su2qVY/rs:fit:1000:0:1/q:100/plain/images/products/1/5639/616388103/CLASSIC.png',
+            'main_name' => 'Дверь влагостойкая пластиковая ',
+            'file' => 'kapelli-multicolor.csv'
+        ],
+        'https://kapelli-doors.ru/catalog/kapelli-eco/' => [
+            'additional_image' => 'https://static.insales-cdn.com/r/WxvoH2f6DBE/rs:fit:1000:0:1/q:100/plain/images/products/1/5665/616388129/ECO.png',
+            'main_name' => 'Дверь влагостойкая пластиковая ',
+            'file' => 'kapelli-eco.csv'
+        ],
+        'https://kapelli-doors.ru/catalog/protivopozharnye/' => [
+            'additional_image' => 'https://static.insales-cdn.com/r/RugiQhWZgyQ/rs:fit:1000:0:1/q:100/plain/images/products/1/5859/616388323/PP.png',
+            'main_name' => '',
+            'file' => 'protivopozharnye.csv'
+        ],
+    ];
     protected $file;
     protected $headers = [
         'Базовый комплект:', 'Размер полотен:', 'Рекомендуемая фурнитура:', 'Комплектующие (приобретаются отдельно):'
@@ -52,20 +75,27 @@ class KapelliDoors extends Command
      */
     public function handle()
     {
-        $this->file = fopen('out.csv', 'w');
-        fputcsv($this->file, Product::$headers, "\t");
-        $html = file_get_contents('https://kapelli-doors.ru/catalog/kapelli-classic/');
-        $crawler = new Crawler($html);
-        $collectionNodes = $crawler->filter('div.subcatalog__list > a');
-        $collectionUrls = $this->getCollections($collectionNodes);
-        foreach ($collectionUrls as $collectionUrl) {
-            $this->getProducts($collectionUrl);
+        foreach ($this->urls as $url => $data) {
+            $this->file = fopen($data['file'], 'w');
+            fputcsv($this->file, Product::$headers, "\t");
+            $html = file_get_contents($url);
+            $crawler = new Crawler($html);
+            $collectionNodes = $crawler->filter('div.subcatalog__list > a');
+            $descriptionNode = $crawler->filter('div.warning__text');
+            if (count($descriptionNode) == 0) {
+                $descriptionNode = $crawler->filter('div.construct.detail-content');
+            }
+            $description = $descriptionNode->outerHtml();
+            $collectionUrls = $this->getCollections($collectionNodes);
+            foreach ($collectionUrls as $collectionUrl) {
+                $this->getProducts($url, $collectionUrl, $description);
+            }
         }
     }
 
-    private function getProducts(string $url)
+    private function getProducts(string $url, string $collectionUrl, string $mainDescription)
     {
-        $html = file_get_contents($url);
+        $html = file_get_contents($collectionUrl);
         $product = new Product();
         /** @var Crawler $crawler */
         $crawler = new Crawler($html);
@@ -78,17 +108,27 @@ class KapelliDoors extends Command
         }
         $colors = $this->getColors($colorNodes);
         $shortDescription = $this->getShortDescription($descriptionNodes);
-        $description = $crawler->filter('div.construct__title')->outerHtml();
-        $description .= $crawler->filter('div.construct__info')->outerHtml();
+        $description = $mainDescription.'<br>';
+        $title = $crawler->filter('div.construct__title');
+        if (count($title) > 0) {
+            $description .= $title->outerHtml();
+        }
+        $info = $crawler->filter('div.construct__info');
+        if (count($info) > 0) {
+            $description .= $info->outerHtml();
+        }
         $product->shortDescription = $shortDescription;
         $product->description = $description;
         $product->parsingUrl = $url;
         foreach ($colors as $color => $image) {
-            $product->name = $mainName;
+            $product->name = $this->urls[$url]['main_name'].$mainName;
             if (count($colors) > 1) {
                 $product->name .= ' '.$color;
             }
             $product->image = self::URL.$image;
+            if (!empty($this->urls[$url]['additional_image'])) {
+                $product->image .= ' '.$this->urls[$url]['additional_image'];
+            }
             $this->makeProductVariants($product, $canvasSizes);
         }
     }
