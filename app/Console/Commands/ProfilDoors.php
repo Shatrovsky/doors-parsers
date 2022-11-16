@@ -25,51 +25,48 @@ class ProfilDoors extends Command
     protected $description = 'Парсинг https://profildoors.ru/';
 
     protected $urls = [
-        'https://profildoors.ru/catalog/serija_u/' => [
+        /*        'https://profildoors.ru/catalog/serija_u/' => [
+                    'additional_image' => 'https://static.insales-cdn.com/r/3G--XWQa9xY/rs:fit:1000:1000:1/plain/images/products/1/7956/617422612/cd.png',
+                    'main_name' => 'Дверь ProfilDoors (Профиль Дорс) ',
+                    'short_description' => '<ul>
+        <li>Экологически безопасное влагостойкое матовое покрытие. Производство Renolit, Германия. Устойчивость к повреждениям и перепадам температуры.</li>
+        <li>Сборно-разборная конструкция. Полотно изготовлено из отдельных элементов (царг: филенка, стоевая, поперечина). Любой составной элемент заменяется при необходимости. В основе царг используется массив сосны и МДФ.</li>
+        <li>Максимальная высота полотен &ndash; 2300 мм, максимальная ширина &ndash; 1000 мм. Шаг нестандарта &ndash; 50 мм.</li>
+        <li><span style="font-size: 14pt;"><strong>Стоимость нестандартных дверей уточняйте у менеджера.</strong></span></li>
+        </ul>'
+                ],*/
+        'https://profildoors.ru/catalog/seriya_xn/' => [
             'additional_image' => 'https://static.insales-cdn.com/r/3G--XWQa9xY/rs:fit:1000:1000:1/plain/images/products/1/7956/617422612/cd.png',
             'main_name' => 'Дверь ProfilDoors (Профиль Дорс) ',
             'short_description' => '<ul>
-<li>Экологически безопасное влагостойкое матовое покрытие. Производство Renolit, Германия. Устойчивость к повреждениям и перепадам температуры.</li>
+<li>Экологически безопасное влагостойкое покрытие, с новейшей эксклюзивной структурой, идеально передающей срез натурального дерева. Производство Renolit, Германия. Устойчивость к повреждениям и перепадам температуры.</li>
 <li>Сборно-разборная конструкция. Полотно изготовлено из отдельных элементов (царг: филенка, стоевая, поперечина). Любой составной элемент заменяется при необходимости. В основе царг используется массив сосны и МДФ.</li>
 <li>Максимальная высота полотен &ndash; 2300 мм, максимальная ширина &ndash; 1000 мм. Шаг нестандарта &ndash; 50 мм.</li>
 <li><span style="font-size: 14pt;"><strong>Стоимость нестандартных дверей уточняйте у менеджера.</strong></span></li>
 </ul>'
         ],
-        /*        'https://kapelli-doors.ru/catalog/kapelli-multicolor/' => [
-                    'additional_image' => 'https://static.insales-cdn.com/r/fPEg7su2qVY/rs:fit:1000:0:1/q:100/plain/images/products/1/5639/616388103/CLASSIC.png',
-                    'main_name' => 'Дверь влагостойкая пластиковая ',
-                    'file' => 'kapelli-multicolor.csv'
-                ],
-                'https://kapelli-doors.ru/catalog/kapelli-eco/' => [
-                    'additional_image' => 'https://static.insales-cdn.com/r/WxvoH2f6DBE/rs:fit:1000:0:1/q:100/plain/images/products/1/5665/616388129/ECO.png',
-                    'main_name' => 'Дверь влагостойкая пластиковая ',
-                    'file' => 'kapelli-eco.csv'
-                ],
-                'https://kapelli-doors.ru/catalog/protivopozharnye/' => [
-                    'additional_image' => 'https://static.insales-cdn.com/r/RugiQhWZgyQ/rs:fit:1000:0:1/q:100/plain/images/products/1/5859/616388323/PP.png',
-                    'main_name' => '',
-                    'file' => 'protivopozharnye.csv'
-                ],*/
     ];
     protected $file;
     protected $additionalImage;
     protected $mainName;
     protected $shortDescription;
     protected $filterColors = [
-//        "Аляска" => "alaska",
-        "Антрацит" => "antracit",
-        "Магнолия Сатинат" => "magnolia_satinat",
-        "Черный Seidenmatt" => "black_mat",
-        "Манхэттен" => "manhattan",
-        "Шеллгрей" => "Shellgray",
-        "ДаркВайт" => "Darkwhaite",
-        "Санд" => "sand",
-        "Грей" => "grey",
+        "white_pekan" => "Пекан белый",
+        "gruvd-seryj" => "Грувд серый",
+        "dark-braun" => "Дарк браун",
+        "monblan" => "Монблан",
+        "salinas-svetlyj" => "Салинас светлый",
+        "salinas-temnyj" => "Салинас темный",
+        "stoun" => "Стоун",
+        "kashtan_temnii" => "Каштан темный",
+        "kashtan_svetlii" => "Каштан светлый",
     ];
     protected $filterGlasses = [];
     protected $filterMoldings = [];
     protected $models = [];
     protected $products = [];
+    protected $colorName;
+    protected $colorKey;
 
 
     protected $canvasSizes = [
@@ -105,13 +102,15 @@ class ProfilDoors extends Command
             $crawler = new Crawler($html);
             $this->models = $this->getModels($crawler);
             $this->getFilters($crawler);
-            foreach ($this->filterColors as $color) {
+            foreach ($this->filterColors as $colorKey => $color) {
                 $this->info($color);
-                $filename = 'profil-series-u-'.$color.'.csv';
+                $this->colorKey = $colorKey;
+                $this->colorName = $color;
+                $filename = 'profil-series-xn-'.$this->colorKey.'.csv';
                 $this->file = fopen($filename, 'w');
                 fputcsv($this->file, ProfilProduct::$headers, "\t");
                 foreach ($this->models as $model => $modelUrl) {
-                    $variantUrls = $this->getVariantUrls($modelUrl, $color);
+                    $variantUrls = $this->getVariantUrls($modelUrl, $colorKey);
                     foreach ($variantUrls as $variantUrl) {
                         echo $variantUrl."\n";
                         $this->parseProduct($variantUrl);
@@ -192,7 +191,7 @@ class ProfilDoors extends Command
             $title = $titleNode->filter('div.new-catalogue-filter-title')->text();
             switch ($title) {
                 case 'Цвет':
-                    //$this->setFilterColors($block);
+//                    $this->setFilterColors($block);
                     break;
                 case 'Стекло':
                     $this->setFilterGlasses($block);
@@ -212,9 +211,9 @@ class ProfilDoors extends Command
         $colorNodes = $crawler->filter('div.catalog-filter-selector-item');
         foreach ($colorNodes as $colorNode) {
             $currentNode = new Crawler($colorNode);
-            $value = $currentNode->filter('input')->attr('value');
+            $key = $currentNode->filter('input')->attr('value');
             $name = $currentNode->text();
-            $this->filterColors[$name] = $value;
+            $this->filterColors[$key] = $name;
         }
     }
 
@@ -298,6 +297,9 @@ class ProfilDoors extends Command
                     break;
             }
         }
+        if ($product->color != $this->colorName) {
+            return;
+        }
         $key = $product->model.$product->color.$product->glass.$product->molding;
         if (in_array($key, $this->products)) {
             return;
@@ -321,6 +323,9 @@ class ProfilDoors extends Command
         $nodes = $crawler->filter('div.new-catalogue-models-list > a');
         foreach ($nodes as $node) {
             $modelNode = new Crawler($node);
+            if ($modelNode->attr('class') == 'disabled long-name') {
+                continue;
+            }
             $models[$modelNode->text()] = $modelNode->attr('href');
         }
         return $models;
