@@ -42,6 +42,8 @@ class ProfilProduct
     public $glass = '';
     public $molding = '';
     public $model = '';
+    public $insert = '';
+    public $edge = '';
 
     public static $headers = [
         'ID товара',
@@ -79,7 +81,9 @@ class ProfilProduct
         'Параметр: Цвет',
         'Параметр: Стекло',
         'Параметр: Молдинг',
-        'Параметр: Модель'
+        'Параметр: Модель',
+        'Параметр: Вставка',
+        'Параметр: Кромка',
     ];
 
     public function exportCsv($file)
