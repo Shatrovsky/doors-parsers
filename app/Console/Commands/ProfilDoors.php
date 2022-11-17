@@ -35,11 +35,11 @@ class ProfilDoors extends Command
         <li><span style="font-size: 14pt;"><strong>Стоимость нестандартных дверей уточняйте у менеджера.</strong></span></li>
         </ul>'
                 ],*/
-        'https://profildoors.ru/catalog/serija_e/' => [
+        'https://profildoors.ru/catalog/seriya_zn/' => [
             'additional_image' => 'https://static.insales-cdn.com/images/products/1/7263/618396767/KSHT1.jpg',
             'main_name' => 'Дверь ProfilDoors (Профиль Дорс) ',
             'short_description' => '<ul>
-<li>Экологически безопасное влагостойкое матовое покрытие. Производство Renolit, Германия. Устойчивость к повреждениям и перепадам температуры.</li>
+<li>Экологически безопасное влагостойкое покрытие, с новейшей эксклюзивной структурой, идеально передающей срез натурального дерева. Производство Renolit, Германия. Устойчивость к повреждениям и перепадам температуры.</li>
 <li>Каркасно-щитовая дверь состоит из каркаса (брус сосны по периметру), наполнения (мелкоячеистая сота для обычной двери и трубчатое ДСП для усиленной) и щита &ndash; листа МДФ с покрытием или грунтовкой.</li>
 <li>Стандартная высота полотна не более 2100 мм. Возможно изготовление нестандарта по высоте с шагом 50 мм, но не выше 2600 мм при стандартном погонаже, с погонажем INVISIBLE - до 3000 мм., максимальная ширина &ndash; 1000 мм. Шаг нестандарта &ndash; 50 мм.</li>
 <li><span style="font-size: 14pt;"><strong>Стоимость нестандартных дверей уточняйте у менеджера.</strong></span></li>
@@ -50,16 +50,7 @@ class ProfilDoors extends Command
     protected $additionalImage;
     protected $mainName;
     protected $shortDescription;
-    protected $filterColors = [
-//        "alaska" => "Аляска",
-        "antracit" => "Антрацит",
-        "magnolia_satinat" => "Магнолия Сатинат",
-        "manhattan" => "Манхэттен",
-        "Shellgray" => "Шеллгрей",
-        "Darkwhaite" => "ДаркВайт",
-        "sand" => "Санд",
-        "grey" => "Грей"
-    ];
+    protected $filterColors = [];
     protected $filterGlasses = [];
     protected $filterMoldings = [];
     protected $filterInserts = [];
@@ -103,7 +94,6 @@ class ProfilDoors extends Command
             $crawler = new Crawler($html);
             $this->models = $this->getModels($crawler);
             $this->getFilters($crawler);
-            dd($this->filterColors);
             foreach ($this->filterColors as $colorKey => $color) {
                 $this->error($color);
                 $this->colorKey = $colorKey;
