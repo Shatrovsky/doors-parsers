@@ -51,7 +51,7 @@ class ProfilDoors extends Command
     protected $mainName;
     protected $shortDescription;
     protected $filterColors = [
-//        "alaska" => "Аляска",
+        "alaska" => "Аляска",
         "antracit" => "Антрацит",
         "magnolia_satinat" => "Магнолия Сатинат",
         "manhattan" => "Манхэттен",
@@ -103,7 +103,6 @@ class ProfilDoors extends Command
             $crawler = new Crawler($html);
             $this->models = $this->getModels($crawler);
             $this->getFilters($crawler);
-            dd($this->filterColors);
             foreach ($this->filterColors as $colorKey => $color) {
                 $this->error($color);
                 $this->colorKey = $colorKey;
@@ -117,7 +116,6 @@ class ProfilDoors extends Command
                         $this->parseProduct($variantUrl);
                     }
                 }
-                exit;
             }
         }
     }
@@ -163,7 +161,7 @@ class ProfilDoors extends Command
 
     private function getProductDescription(Crawler $crawler)
     {
-        $description = $crawler->filter('div.tab-content-padding > div')->outerHtml();
+        $description = $crawler->filter('div.tab-content-padding')->outerHtml();
         $description = str_replace('дилеров', 'менеджеров', $description);
         return $description;
     }
