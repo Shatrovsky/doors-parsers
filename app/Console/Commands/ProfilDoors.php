@@ -59,6 +59,7 @@ class ProfilDoors extends Command
     protected $products = [];
     protected $colorName;
     protected $colorKey;
+    protected $count = 0;
 
 
     protected $canvasSizes = [
@@ -94,11 +95,12 @@ class ProfilDoors extends Command
             $crawler = new Crawler($html);
             $this->models = $this->getModels($crawler);
             $this->getFilters($crawler);
+//            dd($this->filterColors, $this->filterInserts, $this->filterGlasses, $this->filterEdges);
             foreach ($this->filterColors as $colorKey => $color) {
                 $this->error($color);
                 $this->colorKey = $colorKey;
                 $this->colorName = $color;
-                $filename = 'profil-series-e-'.$this->colorKey.'.csv';
+                $filename = 'profil-series-zn-'.$this->colorKey.'.csv';
                 $this->file = fopen($filename, 'w');
                 fputcsv($this->file, ProfilProduct::$headers, "\t");
                 foreach ($this->models as $model => $modelUrl) {
@@ -107,7 +109,6 @@ class ProfilDoors extends Command
                         $this->parseProduct($variantUrl);
                     }
                 }
-                exit;
             }
         }
     }
@@ -153,7 +154,7 @@ class ProfilDoors extends Command
 
     private function getProductDescription(Crawler $crawler)
     {
-        $description = $crawler->filter('div.tab-content-padding > div')->outerHtml();
+        $description = $crawler->filter('div.tab-content-padding')->outerHtml();
         $description = str_replace('дилеров', 'менеджеров', $description);
         return $description;
     }
