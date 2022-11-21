@@ -56,20 +56,23 @@ class ProfilDoors extends Command
     protected $mainName;
     protected $shortDescription;
     protected $filterColors = [
-//        "Аляска" => "alaska",
-        "Антрацит" => "antracit",
-        "Магнолия Сатинат" => "magnolia_satinat",
-        "Черный Seidenmatt" => "black_mat",
-        "Манхэттен" => "manhattan",
-        "Шеллгрей" => "Shellgray",
-        "ДаркВайт" => "Darkwhaite",
-        "Санд" => "sand",
-        "Грей" => "grey",
+        /*        "alaska" => "Аляска",
+                "antracit" => "Антрацит",
+                "magnolia_satinat" => "Магнолия Сатинат",*/
+        "black_mat" => "Черный Seidenmatt",
+        "manhattan" => "Манхэттен",
+        "Shellgray" => "Шеллгрей",
+        "Darkwhaite" => "ДаркВайт",
+        "sand" => "Санд",
+        "grey" => "Грей"
     ];
     protected $filterGlasses = [];
     protected $filterMoldings = [];
     protected $models = [];
     protected $products = [];
+    protected $colorName;
+    protected $colorKey;
+    protected $count = 0;
 
 
     protected $canvasSizes = [
@@ -105,18 +108,21 @@ class ProfilDoors extends Command
             $crawler = new Crawler($html);
             $this->models = $this->getModels($crawler);
             $this->getFilters($crawler);
-            foreach ($this->filterColors as $color) {
-                $this->info($color);
-                $filename = 'profil-series-u-'.$color.'.csv';
+            foreach ($this->filterColors as $colorKey => $color) {
+                $this->error($color);
+                $this->colorKey = $colorKey;
+                $this->colorName = $color;
+                $filename = 'profil-series-u-'.$this->colorKey.'.csv';
                 $this->file = fopen($filename, 'w');
                 fputcsv($this->file, ProfilProduct::$headers, "\t");
                 foreach ($this->models as $model => $modelUrl) {
-                    $variantUrls = $this->getVariantUrls($modelUrl, $color);
+                    $variantUrls = $this->getVariantUrls($modelUrl, $colorKey);
                     foreach ($variantUrls as $variantUrl) {
-                        echo $variantUrl."\n";
+                        $this->info($variantUrl);
                         $this->parseProduct($variantUrl);
                     }
                 }
+                exit;
             }
         }
     }
@@ -142,29 +148,6 @@ class ProfilDoors extends Command
         return $colors;
     }
 
-    private function getGlasses($nodes): array
-    {
-        $glasses = [];
-        foreach ($nodes as $node) {
-            $glassNode = new Crawler($node);
-            $url = $glassNode->filter('a')->attr('data-xml-id');
-            $name = $glassNode->text();
-            $glasses[$name] = $url;
-        }
-        return $glasses;
-    }
-
-    private function getCollections($nodes): array
-    {
-        $collections = [];
-        foreach ($nodes as $node) {
-            $collectionNode = new Crawler($node);
-            $link = $collectionNode->filter('a')->attr('href');
-            $collections[] = self::URL.$link;
-        }
-        return $collections;
-    }
-
     private function getProductName(ProfilProduct $product)
     {
         $name = $this->mainName.'Модель '.$product->model;
@@ -179,7 +162,7 @@ class ProfilDoors extends Command
 
     private function getProductDescription(Crawler $crawler)
     {
-        $description = $crawler->filter('div.tab-content-padding > div')->outerHtml();
+        $description = $crawler->filter('div.tab-content-padding')->outerHtml();
         $description = str_replace('дилеров', 'менеджеров', $description);
         return $description;
     }
@@ -212,9 +195,9 @@ class ProfilDoors extends Command
         $colorNodes = $crawler->filter('div.catalog-filter-selector-item');
         foreach ($colorNodes as $colorNode) {
             $currentNode = new Crawler($colorNode);
-            $value = $currentNode->filter('input')->attr('value');
+            $key = $currentNode->filter('input')->attr('value');
             $name = $currentNode->text();
-            $this->filterColors[$name] = $value;
+            $this->filterColors[$key] = $name;
         }
     }
 
@@ -298,6 +281,9 @@ class ProfilDoors extends Command
                     break;
             }
         }
+        if ($product->color != $this->colorName) {
+            return;
+        }
         $key = $product->model.$product->color.$product->glass.$product->molding;
         if (in_array($key, $this->products)) {
             return;
@@ -321,6 +307,9 @@ class ProfilDoors extends Command
         $nodes = $crawler->filter('div.new-catalogue-models-list > a');
         foreach ($nodes as $node) {
             $modelNode = new Crawler($node);
+            if ($modelNode->attr('class') == 'disabled long-name') {
+                continue;
+            }
             $models[$modelNode->text()] = $modelNode->attr('href');
         }
         return $models;
