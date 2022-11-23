@@ -2,21 +2,13 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Accessory;
-use App\Models\AccessoryGroup;
-use App\Models\Category;
-use App\Models\Color;
-use App\Models\ColorGroup;
-use App\Models\DataAttribute;
-use App\Models\DataAttributeValue;
 use App\Models\DataProduct;
-use App\Models\Glass;
-use App\Models\Product;
+use App\Models\DveriComProduct;
 use App\Models\Property;
 use App\Models\PropertyValue;
-use App\Models\Trademark;
 use Illuminate\Console\Command;
-use Illuminate\Support\Facades\DB;
+use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Relations\BelongsTo;
 
 class DveriComLoader extends Command
 {
@@ -33,7 +25,11 @@ class DveriComLoader extends Command
      * @var string
      */
     protected $description = 'Экспорт данных с https://dveri.com/';
-    private $categories = [507];
+    protected $file;
+
+    private $categories = [
+        10 => 'Эко Шпон'
+    ];
 
     /**
      * Create a new command instance.
@@ -52,16 +48,94 @@ class DveriComLoader extends Command
      */
     public function handle()
     {
-        foreach ($this->categories as $categoryId) {
-            $product = DataProduct::query()->with([
-                'category', 'glass', 'color', 'trademark', 'accessoryGroup'
-            ])->where('category_id', $categoryId)->first();
-            $this->getProduct($product);
+        foreach ($this->categories as $categoryId => $categoryName) {
+            $products = DataProduct::query()
+                ->whereHas('category', function (Builder $query) use ($categoryId) {
+                    $query->where('parent_id', $categoryId);
+                })
+                ->with([
+                    'glass',
+                    'color',
+                    'trademark',
+                    'accessoryGroup',
+                    'category' => function (BelongsTo $query) use ($categoryId) {
+                        $query->where('parent_id', $categoryId);
+                    }
+                ])->get();
+            $this->file = fopen('eco-shpon.csv', 'w');
+            foreach ($products as $product) {
+                $this->getProduct($product);
+            }
         }
     }
 
     private function getProduct(DataProduct $dataProduct)
     {
-        $product = new Product();
+        $product = new DveriComProduct();
+        $product->color = $dataProduct->color->title ?? '';
+        $product->glass = $dataProduct->glass->title ?? '';
+        $product->manufacturer = $dataProduct->trademark->title ?? '';
+        $product->description = $this->getProductDescription($dataProduct);
+        $product->model = $dataProduct->title;
+        $product->image = $this->getPicture($dataProduct);
+        $product->name = $this->getProductName($product);
+        $this->info($product->name);
+        $this->getProductVariants($product, $dataProduct);
+    }
+
+    private function getProductDescription(DataProduct $dataProduct): string
+    {
+        $descriptions = [];
+        $description = '';
+        foreach ($dataProduct->properties as $property) {
+            $propertyTitle = Property::query()->find($property['id']);
+            $propertyValue = PropertyValue::query()->find($property['value_id']);
+            $descriptions[$propertyTitle->id] = [
+                'title' => $propertyTitle->title,
+                'value' => $propertyValue->title
+            ];
+        }
+        ksort($descriptions);
+        foreach ($descriptions as $item) {
+            $description .= '<div class="title">'.$item['title'].':</div>';
+            $description .= '<div class="value">'.$item['value'].'</div>';
+        }
+        return $description;
+    }
+
+    private function getProductVariants(DveriComProduct $product, DataProduct $dataProduct)
+    {
+        foreach ($dataProduct->options as $option) {
+            $product->canvasSize = $option['title'];
+            $product->artikul = $option['vendor_code'];
+            $product->netto = $option['price_dealer'] - $option['price_dealer'] / 100 * $option['discount_dealer'];
+            $product->price = $option['price'] - $option['price'] / 100 * $option['discount'];
+            $product->exportCsv($this->file);
+        }
+    }
+
+    private function getPicture(DataProduct $dataProduct)
+    {
+        $dataPictures = $dataProduct->pictures;
+        $keys = ['large', 'medium', 'small'];
+        foreach ($keys as $key) {
+            if (isset($dataPictures[$key])) {
+                return $dataPictures[$key];
+            }
+        }
+        return '';
+    }
+
+    private function getProductName(DveriComProduct $product)
+    {
+        $name = 'Межкомнатная дверь '.$product->manufacturer;
+        $name .= ' Модель '.$product->model;
+        if (!empty($product->color)) {
+            $name .= ' / Цвет '.$product->color;
+        }
+        if (!empty($product->glass)) {
+            $name .= ' / Стекло '.$product->glass;
+        }
+        return $name;
     }
 }

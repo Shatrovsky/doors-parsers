@@ -20,4 +20,9 @@ class PropertyValue extends Model
 
     protected $table = 'property_values';
     protected $guarded = [];
+
+    public function property()
+    {
+        return $this->belongsTo(Property::class);
+    }
 }
