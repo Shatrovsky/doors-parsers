@@ -2,13 +2,17 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Category;
 use App\Models\DataProduct;
 use App\Models\DveriComProduct;
 use App\Models\Property;
 use App\Models\PropertyValue;
 use Illuminate\Console\Command;
 use Illuminate\Database\Eloquent\Builder;
+use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
+use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\DB;
 
 class DveriComLoader extends Command
 {
@@ -27,9 +31,9 @@ class DveriComLoader extends Command
     protected $description = 'Экспорт данных с https://dveri.com/';
     protected $file;
 
-    private $categories = [
-        10 => 'Эко Шпон'
-    ];
+    private $category = null;
+    private $subCategory1 = null;
+    private $subCategory2 = null;
 
     /**
      * Create a new command instance.
@@ -48,30 +52,52 @@ class DveriComLoader extends Command
      */
     public function handle()
     {
-        foreach ($this->categories as $categoryId => $categoryName) {
-            $products = DataProduct::query()
-                ->whereHas('category', function (Builder $query) use ($categoryId) {
-                    $query->where('parent_id', $categoryId);
-                })
-                ->with([
-                    'glass',
-                    'color',
-                    'trademark',
-                    'accessoryGroup',
-                    'category' => function (BelongsTo $query) use ($categoryId) {
-                        $query->where('parent_id', $categoryId);
+        $categories = $this->getCategories();
+        foreach ($categories as $category) {
+            $this->category = $category;
+            $this->file = fopen($this->category->title.'.csv', 'w');
+            fputcsv($this->file, DveriComProduct::$headers, "\t");
+            $this->subCategory1 = null;
+            $subCategories1 = $this->getSubCategories($category->id);
+            foreach ($subCategories1 as $subCategory1) {
+                $this->subCategory1 = $subCategory1;
+                $this->subCategory2 = null;
+                $subCategories2 = $this->getSubCategories($subCategory1->id);
+                if ($subCategories2->isEmpty()) {
+                    $this->getProducts($subCategory1->id);
+                } else {
+                    foreach ($subCategories2 as $subCategory2) {
+                        $this->subCategory2 = $subCategory2;
+                        $this->getProducts($subCategory2->id);
                     }
-                ])->get();
-            $this->file = fopen('eco-shpon.csv', 'w');
-            foreach ($products as $product) {
-                $this->getProduct($product);
+                }
             }
+        }
+    }
+
+    private function getProducts(int $categoryId)
+    {
+        DB::enableQueryLog();
+        $products = DataProduct::query()
+            ->with([
+                'glass',
+                'color',
+                'trademark',
+                'accessoryGroup',
+            ])
+            ->where('category_id', $categoryId)
+            ->get();
+        foreach ($products as $product) {
+            $this->getProduct($product);
         }
     }
 
     private function getProduct(DataProduct $dataProduct)
     {
         $product = new DveriComProduct();
+        $product->category = $this->category->title ?? '';
+        $product->subCategory1 = $this->subCategory1->title ?? '';
+        $product->subCategory2 = $this->subCategory2->title ?? '';
         $product->color = $dataProduct->color->title ?? '';
         $product->glass = $dataProduct->glass->title ?? '';
         $product->manufacturer = $dataProduct->trademark->title ?? '';
@@ -79,6 +105,7 @@ class DveriComLoader extends Command
         $product->model = $dataProduct->title;
         $product->image = $this->getPicture($dataProduct);
         $product->name = $this->getProductName($product);
+        $product->parsingUrl = $dataProduct->url;
         $this->info($product->name);
         $this->getProductVariants($product, $dataProduct);
     }
@@ -109,33 +136,56 @@ class DveriComLoader extends Command
             $product->canvasSize = $option['title'];
             $product->artikul = $option['vendor_code'];
             $product->netto = $option['price_dealer'] - $option['price_dealer'] / 100 * $option['discount_dealer'];
-            $product->price = $option['price'] - $option['price'] / 100 * $option['discount'];
+            $product->price = $product->netto * 1.3 - 4;
             $product->exportCsv($this->file);
         }
+        exit;
     }
 
     private function getPicture(DataProduct $dataProduct)
     {
         $dataPictures = $dataProduct->pictures;
         $keys = ['large', 'medium', 'small'];
-        foreach ($keys as $key) {
-            if (isset($dataPictures[$key])) {
-                return $dataPictures[$key];
+        $images = [];
+        foreach ($dataPictures as $dataPicture) {
+            foreach ($keys as $key) {
+                if (isset($dataPicture[$key])) {
+                    $images[] = $dataPicture[$key];
+                    break;
+                }
             }
         }
-        return '';
+        return implode(' ', $images);
     }
 
     private function getProductName(DveriComProduct $product)
     {
-        $name = 'Межкомнатная дверь '.$product->manufacturer;
-        $name .= ' Модель '.$product->model;
+        if (strpos($product->category, 'двери')) {
+            $name = 'Дверь';
+        } else {
+            $name = $product->category;
+        }
+
+        $name .= ' '.$product->model;
         if (!empty($product->color)) {
             $name .= ' / Цвет '.$product->color;
         }
         if (!empty($product->glass)) {
             $name .= ' / Стекло '.$product->glass;
         }
+        $name .= ' / '.$product->manufacturer;
         return $name;
+    }
+
+    private function getCategories(): Collection
+    {
+        $categories = Category::query()->whereNull('parent_id')->limit(1)->get(['id', 'title']);
+        return $categories;
+    }
+
+    private function getSubCategories(int $id): Collection
+    {
+        $categories = Category::query()->where('parent_id', $id)->get(['id', 'title']);
+        return $categories;
     }
 }

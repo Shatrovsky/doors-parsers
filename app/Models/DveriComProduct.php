@@ -6,6 +6,9 @@ namespace App\Models;
 
 class DveriComProduct
 {
+    public $category = '';
+    public $subCategory1 = '';
+    public $subCategory2 = '';
     public $id = '';
     public $name = '';
     public $nameUrl = '';
@@ -44,6 +47,9 @@ class DveriComProduct
     public $model = '';
 
     public static $headers = [
+        'Корневая',
+        'Подкатегория1',
+        'Подкатегория2',
         'ID товара',
         'Название товара или услуги',
         'Название товара в URL',
