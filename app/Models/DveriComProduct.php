@@ -33,9 +33,9 @@ class DveriComProduct
     public $artikul = '';
     public $barcode = '';
     public $variantDimensions = '';
-    public $price = 1000;
+    public $price = 1;
     public $oldPrice = '';
-    public $netto = '';
+    public $netto = 1;
     public $count = 100;
     public $weight = '';
     public $variantUrl = '';

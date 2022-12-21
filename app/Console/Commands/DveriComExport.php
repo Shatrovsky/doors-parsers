@@ -13,6 +13,7 @@ use Illuminate\Database\Eloquent\Collection;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
+use Symfony\Component\DomCrawler\Crawler;
 
 class DveriComLoader extends Command
 {
@@ -34,6 +35,11 @@ class DveriComLoader extends Command
     private $category = null;
     private $subCategory1 = null;
     private $subCategory2 = null;
+    protected int $count = 0;
+    protected int $number = 0;
+    protected $excludeCategories = [
+        'Porta'
+    ];
 
     /**
      * Create a new command instance.
@@ -67,6 +73,9 @@ class DveriComLoader extends Command
                     $this->getProducts($subCategory1->id);
                 } else {
                     foreach ($subCategories2 as $subCategory2) {
+                        if (in_array($subCategory2->title, $this->excludeCategories)) {
+                            continue;
+                        }
                         $this->subCategory2 = $subCategory2;
                         $this->getProducts($subCategory2->id);
                     }
@@ -77,7 +86,6 @@ class DveriComLoader extends Command
 
     private function getProducts(int $categoryId)
     {
-        DB::enableQueryLog();
         $products = DataProduct::query()
             ->with([
                 'glass',
@@ -87,6 +95,7 @@ class DveriComLoader extends Command
             ])
             ->where('category_id', $categoryId)
             ->get();
+
         foreach ($products as $product) {
             $this->getProduct($product);
         }
@@ -100,13 +109,15 @@ class DveriComLoader extends Command
         $product->subCategory2 = $this->subCategory2->title ?? '';
         $product->color = $dataProduct->color->title ?? '';
         $product->glass = $dataProduct->glass->title ?? '';
-        $product->manufacturer = $dataProduct->trademark->title ?? '';
-        $product->description = $this->getProductDescription($dataProduct);
+        $product->manufacturer = 'Двери Браво';
         $product->model = $dataProduct->title;
         $product->image = $this->getPicture($dataProduct);
         $product->name = $this->getProductName($product);
+        $product->metaTitle = $product->name;
+        $product->metaKeywords = $product->name;
+        $product->metaDescription = $product->name;
         $product->parsingUrl = $dataProduct->url;
-        $this->info($product->name);
+//        $product->description = $this->getProductDescription($dataProduct);
         $this->getProductVariants($product, $dataProduct);
     }
 
@@ -132,16 +143,59 @@ class DveriComLoader extends Command
 
     private function getProductVariants(DveriComProduct $product, DataProduct $dataProduct)
     {
-        foreach ($dataProduct->options as $option) {
-            $product->canvasSize = $option['title'];
-            $product->artikul = $option['vendor_code'];
-            $product->netto = $option['price_dealer'] - $option['price_dealer'] / 100 * $option['discount_dealer'];
-            $product->price = $product->netto * 1.3 - 4;
+        $excludes = ['правое', 'с усилением', 'защелки'];
+        if (!empty($dataProduct->options)) {
+            foreach ($dataProduct->options as $option) {
+                $missing = false;
+                foreach ($excludes as $exclude) {
+                    if (strpos($option['title'], $exclude) !== false) {
+                        $missing = true;
+                        break;
+                    }
+                }
+                if ($missing == true) {
+                    continue;
+                }
+                $option['title'] = str_replace('левое', '', $option['title']);
+                $option['title'] = str_replace('без усиления ', '', $option['title']);
+                $product->canvasSize = $option['title'];
+                $product->artikul = $option['vendor_code'];
+                if (!empty($option['price_dealer'])) {
+                    $product->netto = $option['price_dealer'] - $option['price_dealer'] / 100 * $option['discount_dealer'];
+                    $product->price = $product->netto * 1.3 - 4;
+                }
+                $product->parsingUrl = $dataProduct->url.'?option_id='.$option['id'];
+                try {
+                    $product->description = $this->getDescriptionHtml($product->parsingUrl);
+                } catch (\Exception $exception) {
+                    $this->error($exception->getMessage());
+                    return;
+                }
+                $this->info($product->name." ".$product->artikul);
+                $product->exportCsv($this->file);
+            }
+        } else {
+            $product->parsingUrl = $dataProduct->url;
+            $product->artikul = $dataProduct->vendor_code;
+            if (!empty($dataProduct->price_dealer)) {
+                $product->netto = $dataProduct->price_dealer - $dataProduct->price_dealer / 100 * $dataProduct->discount_dealer;
+                $product->price = $product->netto * 1.3 - 4;
+            }
+            try {
+                $product->description = $this->getDescriptionHtml($product->parsingUrl);
+            } catch (\Exception $exception) {
+                $this->error($exception->getMessage());
+                return;
+            }
+            $this->info($product->name." ".$product->artikul);
             $product->exportCsv($this->file);
         }
-        exit;
     }
 
+    private function getCanvasSize()
+    {
+
+    }
     private function getPicture(DataProduct $dataProduct)
     {
         $dataPictures = $dataProduct->pictures;
@@ -179,7 +233,7 @@ class DveriComLoader extends Command
 
     private function getCategories(): Collection
     {
-        $categories = Category::query()->whereNull('parent_id')->limit(1)->get(['id', 'title']);
+        $categories = Category::query()->whereNull('parent_id')->whereIn('id', [106])->get(['id', 'title']);
         return $categories;
     }
 
@@ -187,5 +241,40 @@ class DveriComLoader extends Command
     {
         $categories = Category::query()->where('parent_id', $id)->get(['id', 'title']);
         return $categories;
+    }
+
+    private function getDescriptionHtml(string $url)
+    {
+        $description = '';
+        $html = file_get_contents($url);
+        $crawler = new Crawler($html);
+        $accessories = $crawler->filter('table.product__table.product__table--components');
+        if (count($accessories) > 0) {
+            $accessories = $accessories->outerHtml();
+            $accessories = preg_replace('|(<td class="product__table--td hidden-closed">)(.*)(</td>)|Uis', '',
+                $accessories);
+            $accessories = preg_replace('|(<td class="hidden-closed">)(.*)(</td>)|Uis', '', $accessories);
+            $accessories = str_replace('cellpadding="0" cellspacing="0"', 'cellpadding="5" cellspacing="5"',
+                $accessories);
+            $accessories = str_replace('/storage', 'https://dveri.com/storage', $accessories);
+            $description .= '<div><b>Комлектующие</b></div>'.$accessories;
+        }
+
+        $mainNode = $crawler->filter('li.tabs__content-item')->first();
+        $mainNodeCrawler = new Crawler($mainNode->html());
+        $mainItems = $mainNodeCrawler->filter('div.product__property-list');
+        if (!empty($mainItems)) {
+            if (!empty($description)) {
+                $description .= '<p></p>';
+            }
+            foreach ($mainItems as $mainItem) {
+                $mainCrawler = new Crawler($mainItem);
+                $mainDescription = $mainCrawler->html();
+                $mainDescription = preg_replace('|(<div class="product__property-name">)(.*)(</div>)|Uis',
+                    '$1<b>$2</b>$3', $mainDescription);
+                $description .= $mainDescription;
+            }
+        }
+        return $description;
     }
 }
