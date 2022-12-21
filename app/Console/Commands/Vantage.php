@@ -26,22 +26,8 @@ class Vantage extends Command
     protected $description = 'Парсинг https://vantage.su/';
 
     protected $file;
-    protected $additionalImage;
-    protected $mainName;
-    protected $shortDescription;
     protected $urls = [
         'Дверные ручки' => 'https://vantage.su/dvernye-ruchki/'
-    ];
-    protected $filterColors = [
-        /*        "alaska" => "Аляска",
-                "antracit" => "Антрацит",
-                "magnolia_satinat" => "Магнолия Сатинат",*/
-        "black_mat" => "Черный Seidenmatt",
-        "manhattan" => "Манхэттен",
-        "Shellgray" => "Шеллгрей",
-        "Darkwhaite" => "ДаркВайт",
-        "sand" => "Санд",
-        "grey" => "Грей"
     ];
 
     /**
@@ -65,9 +51,13 @@ class Vantage extends Command
             $html = file_get_contents($url);
             $crawler = new Crawler($html);
             $productUrls = $this->getProductUrls($crawler);
+            $filename = $name.'.csv';
+            $this->file = fopen($filename, 'w');
+            fputcsv($this->file, VantageProduct::$headers, "\t");
             foreach ($productUrls as $productUrl) {
                 $this->getProduct($productUrl);
             }
+            exit;
         }
     }
 
@@ -86,10 +76,16 @@ class Vantage extends Command
     {
         $html = file_get_contents($url);
         $crawler = new Crawler($html);
+        $data = $this->getNodes($crawler);
         $product = new VantageProduct();
-        $product->name = $this->getProductName($crawler);
+        $product->name = $data['name'];
+        $product->color = $data['color'];
+        $product->description = $data['description'];
+        $product->shortDescription = $data['description'];
         $product->parsingUrl = $url;
         $product->image = $this->getProductImage($crawler);
+        $this->info($product->name);
+        $product->exportCsv($this->file);
     }
 
     private function getProductImage(Crawler $crawler)
@@ -98,8 +94,13 @@ class Vantage extends Command
         return $image;
     }
 
-    private function getProductName(Crawler $crawler)
+    private function getNodes(Crawler $crawler): array
     {
+        $result = [
+            'name' => '',
+            'color' => '',
+            'description' => ''
+        ];
         $node = $crawler->filter('div.tdcntnt')->html();
         $crawlerContent = new Crawler($node);
         $tableNode = $crawlerContent->filter('table')->last()->html();
@@ -107,9 +108,18 @@ class Vantage extends Command
         $dataNodes = $dataCrawler->filter('td');
         foreach ($dataNodes as $dataNode) {
             $descriptionNode = new Crawler($dataNode);
-            $this->info($descriptionNode->html());
+            $descriptionText = $descriptionNode->text();
+            if (strpos($descriptionText, 'Артикул:') === 0) {
+                $result['name'] = trim(str_replace('Артикул:', '', $descriptionText));
+            }
+            if (strpos($descriptionText, 'Цвет:') === 0) {
+                $result['color'] = trim(str_replace('Цвет:', '', $descriptionText));
+            }
+            if (strpos($descriptionText, 'Описание:') === 0) {
+                $result['description'] = $descriptionNode->html();
+            }
         }
-        exit;
+        return $result;
     }
 
     private function getModels(Crawler $crawler)

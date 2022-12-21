@@ -6,6 +6,9 @@ namespace App\Models;
 
 class VantageProduct
 {
+    public $category = '';
+    public $subCategory1 = '';
+    public $subCategory2 = '';
     public $id = '';
     public $name = '';
     public $nameUrl = '';
@@ -25,7 +28,6 @@ class VantageProduct
     public $dimensions = '';
     public $image = '';
     public $videoUrl = '';
-    public $canvasSize = '';
     public $variantId = '';
     public $artikul = '';
     public $barcode = '';
@@ -38,8 +40,13 @@ class VantageProduct
     public $variantUrl = '';
     public $manufacturer = 'Vantage';
     public $parsingUrl = '';
+    public $color = '';
+    public $model = '';
 
     public static $headers = [
+        'Корневая',
+        'Подкатегория1',
+        'Подкатегория2',
         'ID товара',
         'Название товара или услуги',
         'Название товара в URL',
@@ -59,7 +66,6 @@ class VantageProduct
         'Габариты',
         'Изображения',
         'Ссылка на видео',
-        'Свойство: Размер полотна',
         'ID варианта',
         'Артикул',
         'Штрих-код',
@@ -71,7 +77,9 @@ class VantageProduct
         'Вес',
         'Изображения варианта',
         'Параметр: Производитель',
-        'Параметр: Ссылка на донер'
+        'Параметр: Ссылка на донер',
+        'Параметр: Цвет',
+        'Параметр: Модель'
     ];
 
     public function exportCsv($file)
