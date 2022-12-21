@@ -27,8 +27,73 @@ class Vantage extends Command
 
     protected $file;
     protected $urls = [
-        'Дверные ручки' => 'https://vantage.su/dvernye-ruchki/'
+        0 => [
+            'url' => 'https://vantage.su/dvernye-ruchki/',
+            'category' => 'Дверные ручки ЦАМ',
+            'name' => 'Дверная ручка'
+        ],
+        1 => [
+            'url' => 'https://vantage.su/dver-ruchka-alumin/',
+            'category' => 'Дверные алюминиевые',
+        ],
+        2 => [
+            'url' => 'https://vantage.su/nakladki-pod-tsylindr/',
+            'category' => 'Накладки под цилиндр',
+        ],
+        3 => [
+            'url' => 'https://vantage.su/santehnicheskye-zavertki/',
+            'category' => 'Накладки сантехнические',
+        ],
+        4 => [
+            'url' => 'https://vantage.su/mezhkomnatnye-zamki/',
+            'category' => 'Межкомнатные замки',
+        ],
+        5 => [
+            'url' => 'https://vantage.su/dvernye-petli/',
+            'category' => 'Дверные петли',
+        ],
+        6 => [
+            'url' => 'https://vantage.su/tortsevye-shpingalety/',
+            'category' => 'Торцевые шпингалеты',
+        ],
+        7 => [
+            'url' => 'https://vantage.su/mechanizm-cilindr/',
+            'category' => 'Механизмы цилиндрические',
+        ],
+        8 => [
+            'url' => 'https://vantage.su/dver-ogranichitel/',
+            'category' => 'Дверные ограничители',
+        ],
+        9 => [
+            'url' => 'https://vantage.su/dovodchiki/',
+            'category' => 'Доводчики',
+        ],
+        10 => [
+            'url' => 'https://vantage.su/electro-zamki/',
+            'category' => 'Электромеханичееские замки',
+        ],
+        11 => [
+            'url' => 'https://vantage.su/razdvig-sistem/',
+            'category' => 'Раздвижные системы',
+        ],
+        12 => [
+            'url' => 'https://vantage.su/bronirovannye-nakladki/',
+            'category' => 'Бронированные накладки',
+        ],
+        13 => [
+            'url' => 'https://vantage.su/furnitura-dlya-finskih-dverei/',
+            'category' => 'Фурнитура для финских дверей',
+        ],
+        14 => [
+            'url' => 'https://vantage.su/furnitura-iz-nerzaveyushey-stali/',
+            'category' => 'Фурнитура из нержавеющей стали',
+        ],
+        15 => [
+            'url' => 'https://vantage.su/productia-agb/',
+            'category' => 'Продукция AGB',
+        ],
     ];
+    protected $category;
 
     /**
      * Create a new command instance.
@@ -47,17 +112,21 @@ class Vantage extends Command
      */
     public function handle()
     {
-        foreach ($this->urls as $name => $url) {
-            $html = file_get_contents($url);
+        $filename = 'vantage.csv';
+        $this->file = fopen($filename, 'w');
+        fputcsv($this->file, VantageProduct::$headers, "\t");
+        foreach ($this->urls as $category) {
+            $this->category = $category;
+            $html = file_get_contents($this->category['url']);
             $crawler = new Crawler($html);
             $productUrls = $this->getProductUrls($crawler);
-            $filename = $name.'.csv';
-            $this->file = fopen($filename, 'w');
-            fputcsv($this->file, VantageProduct::$headers, "\t");
             foreach ($productUrls as $productUrl) {
-                $this->getProduct($productUrl);
+                try {
+                    $this->getProduct($productUrl);
+                } catch (\Exception $exception) {
+                    $this->error($productUrl.$exception->getTraceAsString());
+                }
             }
-            exit;
         }
     }
 
@@ -78,7 +147,10 @@ class Vantage extends Command
         $crawler = new Crawler($html);
         $data = $this->getNodes($crawler);
         $product = new VantageProduct();
-        $product->name = $data['name'];
+        $product->artikul = $data['name'];
+        $product->name = $this->getProductName($data);
+        $product->category = $this->category['category'];
+        $product->metaDescription = $product->metaKeywords = $product->metaTitle = $product->name;
         $product->color = $data['color'];
         $product->description = $data['description'];
         $product->shortDescription = $data['description'];
@@ -90,13 +162,35 @@ class Vantage extends Command
 
     private function getProductImage(Crawler $crawler)
     {
-        $image = $crawler->filter('a.highslide')->attr('href');
-        return $image;
+        $image = $crawler->filter('a.highslide');
+        if (count($image) > 0) {
+            return $image->attr('href');
+        }
+        $image = $crawler->filter('img.xfieldimage');
+        if (count($image) > 0) {
+            return self::URL.$image->attr('src');
+        }
+        return '';
     }
 
+    private function getProductName(array $data)
+    {
+        $productName = $data['category_name'];
+        $productName .= ' '.$data['name'];
+        if (!empty($data['color'])) {
+            $productName .= ' '.$data['color'];
+        }
+        return $productName;
+    }
     private function getNodes(Crawler $crawler): array
     {
+        $mapCategoryName = [
+            'Дверные ручки' => 'Дверная ручка',
+            'Накладки под цилиндр' => 'Накладка под цилиндр',
+            'Накладки сантехнические' => 'Накладка сантехническая',
+        ];
         $result = [
+            'category_name' => '',
             'name' => '',
             'color' => '',
             'description' => ''
@@ -105,20 +199,24 @@ class Vantage extends Command
         $crawlerContent = new Crawler($node);
         $tableNode = $crawlerContent->filter('table')->last()->html();
         $dataCrawler = new Crawler($tableNode);
-        $dataNodes = $dataCrawler->filter('td');
-        foreach ($dataNodes as $dataNode) {
-            $descriptionNode = new Crawler($dataNode);
-            $descriptionText = $descriptionNode->text();
-            if (strpos($descriptionText, 'Артикул:') === 0) {
-                $result['name'] = trim(str_replace('Артикул:', '', $descriptionText));
-            }
-            if (strpos($descriptionText, 'Цвет:') === 0) {
-                $result['color'] = trim(str_replace('Цвет:', '', $descriptionText));
-            }
-            if (strpos($descriptionText, 'Описание:') === 0) {
-                $result['description'] = $descriptionNode->html();
-            }
+        $descriptionNode = $dataCrawler->filter('td')->eq(0);
+        $descriptionText = $descriptionNode->text();
+        $result['category_name'] = $mapCategoryName[$descriptionText] ?? $descriptionText;
+
+        $descriptionNode = $dataCrawler->filter('td')->eq(1);
+        $descriptionText = $descriptionNode->text();
+        $result['name'] = trim(str_replace('Артикул:', '', $descriptionText));
+
+        $descriptionNode = $dataCrawler->filter('td')->eq(2);
+        $descriptionText = $descriptionNode->text();
+        $result['color'] = trim(str_replace('Цвет:', '', $descriptionText));
+
+        $descriptionNode = $dataCrawler->filter('td')->eq(3);
+        $descriptionText = $descriptionNode->text();
+        if (trim($descriptionText != 'Описание:')) {
+            $result['description'] = $descriptionNode->html();
         }
+
         return $result;
     }
 
