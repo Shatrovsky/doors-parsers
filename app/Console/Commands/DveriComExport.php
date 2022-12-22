@@ -77,6 +77,7 @@ class DveriComExport extends Command
                             continue;
                         }
                         $this->subCategory2 = $subCategory2;
+                        $this->renameSubcategory2();
                         $this->getProducts($subCategory2->id);
                     }
                 }
@@ -84,6 +85,23 @@ class DveriComExport extends Command
         }
     }
 
+    private function renameSubcategory2()
+    {
+        $map = [
+            'Ручки' => 'Ручка дверная',
+            'Накладки' => 'Накладка под цилиндр',
+            'Фиксаторы' => 'Фиксатор',
+            'Ручки-защелки' => 'Ручка-защелка',
+            'Петли' => 'Петля дверная',
+            'Замки' => 'Замок',
+            'Защелки' => 'Защелка',
+            'Цилиндры' => 'Цилиндр',
+            'Шпингалеты' => 'Шпингалет',
+        ];
+        if (isset($map[$this->subCategory2->title])) {
+            $this->subCategory2->title = $map[$this->subCategory2->title];
+        }
+    }
     private function getProducts(int $categoryId)
     {
         $products = DataProduct::query()
@@ -144,7 +162,7 @@ class DveriComExport extends Command
     private function getProductVariants(DveriComProduct $product, DataProduct $dataProduct)
     {
         $excludes = ['правое', 'с усилением', 'защелки'];
-        if (!empty($dataProduct->options)) {
+        if (!empty($dataProduct->options) && $this->category->id != 106) {
             foreach ($dataProduct->options as $option) {
                 $missing = false;
                 foreach ($excludes as $exclude) {
@@ -171,7 +189,7 @@ class DveriComExport extends Command
                     $this->error($exception->getMessage());
                     return;
                 }
-                $this->info($product->name." ".$product->artikul);
+                $this->info($product->category." - ".$product->subCategory1.' - '.$product->subCategory2.' - '.$product->name." ".$product->artikul);
                 $product->exportCsv($this->file);
             }
         } else {
@@ -187,15 +205,11 @@ class DveriComExport extends Command
                 $this->error($exception->getMessage());
                 return;
             }
-            $this->info($product->name." ".$product->artikul);
+            $this->info($product->category." - ".$product->subCategory1.' - '.$product->subCategory2.' - '.$product->name." ".$product->artikul);
             $product->exportCsv($this->file);
         }
     }
 
-    private function getCanvasSize()
-    {
-
-    }
     private function getPicture(DataProduct $dataProduct)
     {
         $dataPictures = $dataProduct->pictures;
@@ -241,7 +255,14 @@ class DveriComExport extends Command
 
     private function getSubCategories(int $id): Collection
     {
-        $categories = Category::query()->where('parent_id', $id)->get(['id', 'title']);
+        $excludeCategories = [
+            'Для стеклянных дверей',
+            'Для входных дверей',
+            'Цифры'
+        ];
+        $categories = Category::query()->where('parent_id', $id)->whereNotIn('title', $excludeCategories)->get([
+            'id', 'title'
+        ]);
         return $categories;
     }
 
