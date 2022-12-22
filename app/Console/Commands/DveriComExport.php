@@ -77,7 +77,6 @@ class DveriComExport extends Command
                             continue;
                         }
                         $this->subCategory2 = $subCategory2;
-                        $this->renameSubcategory2();
                         $this->getProducts($subCategory2->id);
                     }
                 }
@@ -85,23 +84,6 @@ class DveriComExport extends Command
         }
     }
 
-    private function renameSubcategory2()
-    {
-        $map = [
-            'Ручки' => 'Ручка дверная',
-            'Накладки' => 'Накладка под цилиндр',
-            'Фиксаторы' => 'Фиксатор',
-            'Ручки-защелки' => 'Ручка-защелка',
-            'Петли' => 'Петля дверная',
-            'Замки' => 'Замок',
-            'Защелки' => 'Защелка',
-            'Цилиндры' => 'Цилиндр',
-            'Шпингалеты' => 'Шпингалет',
-        ];
-        if (isset($map[$this->subCategory2->title])) {
-            $this->subCategory2->title = $map[$this->subCategory2->title];
-        }
-    }
     private function getProducts(int $categoryId)
     {
         $products = DataProduct::query()
@@ -122,9 +104,8 @@ class DveriComExport extends Command
     private function getProduct(DataProduct $dataProduct)
     {
         $product = new DveriComProduct();
-        $product->category = $this->category->title ?? '';
-        $product->subCategory1 = $this->subCategory1->title ?? '';
-        $product->subCategory2 = $this->subCategory2->title ?? '';
+        $product->category = $this->subCategory1->title ?? '';
+        $product->subCategory1 = $this->subCategory2->title ?? '';
         $product->color = $dataProduct->color->title ?? '';
         $product->glass = $dataProduct->glass->title ?? '';
         $product->manufacturer = 'Двери Браво';
@@ -161,53 +142,20 @@ class DveriComExport extends Command
 
     private function getProductVariants(DveriComProduct $product, DataProduct $dataProduct)
     {
-        $excludes = ['правое', 'с усилением', 'защелки'];
-        if (!empty($dataProduct->options) && $this->category->id != 106) {
-            foreach ($dataProduct->options as $option) {
-                $missing = false;
-                foreach ($excludes as $exclude) {
-                    if (strpos($option['title'], $exclude) !== false) {
-                        $missing = true;
-                        break;
-                    }
-                }
-                if ($missing == true) {
-                    continue;
-                }
-                $option['title'] = str_replace('левое', '', $option['title']);
-                $option['title'] = str_replace('без усиления ', '', $option['title']);
-                $product->canvasSize = $option['title'];
-                $product->artikul = $option['vendor_code'];
-                if (!empty($option['price_dealer'])) {
-                    $product->netto = $option['price_dealer'] - $option['price_dealer'] / 100 * $option['discount_dealer'];
-                    $product->price = $product->netto * 1.3 - 4;
-                }
-                $product->parsingUrl = $dataProduct->url.'?option_id='.$option['id'];
-                try {
-                    $product->description = $this->getDescriptionHtml($product->parsingUrl);
-                } catch (\Exception $exception) {
-                    $this->error($exception->getMessage());
-                    return;
-                }
-                $this->info($product->category." - ".$product->subCategory1.' - '.$product->subCategory2.' - '.$product->name." ".$product->artikul);
-                $product->exportCsv($this->file);
-            }
-        } else {
-            $product->parsingUrl = $dataProduct->url;
-            $product->artikul = $dataProduct->vendor_code;
-            if (!empty($dataProduct->price_dealer)) {
-                $product->netto = $dataProduct->price_dealer - $dataProduct->price_dealer / 100 * $dataProduct->discount_dealer;
-                $product->price = $product->netto * 1.3 - 4;
-            }
-            try {
-                $product->description = $this->getDescriptionHtml($product->parsingUrl);
-            } catch (\Exception $exception) {
-                $this->error($exception->getMessage());
-                return;
-            }
-            $this->info($product->category." - ".$product->subCategory1.' - '.$product->subCategory2.' - '.$product->name." ".$product->artikul);
-            $product->exportCsv($this->file);
+        $product->parsingUrl = $dataProduct->url;
+        $product->artikul = $dataProduct->vendor_code;
+        if (!empty($dataProduct->price_dealer)) {
+            $product->netto = $dataProduct->price_dealer - $dataProduct->price_dealer / 100 * $dataProduct->discount_dealer;
+            $product->price = $product->netto * 1.3 - 4;
         }
+        try {
+            $product->description = $this->getDescriptionHtml($product->parsingUrl);
+        } catch (\Exception $exception) {
+            $this->error($exception->getMessage());
+            return;
+        }
+        $this->info($product->category." - ".$product->subCategory1.' - '.$product->subCategory2.' - '.$product->name." ".$product->artikul);
+        $product->exportCsv($this->file);
     }
 
     private function getPicture(DataProduct $dataProduct)
@@ -228,22 +176,28 @@ class DveriComExport extends Command
 
     private function getProductName(DveriComProduct $product)
     {
-        if (strpos($product->category, 'двери')) {
-            $name = 'Дверь';
-        } elseif (in_array($product->category, ['Плинтус', 'Фурнитура и прочее'])) {
-            $name = '';
-        } else {
-            $name = $product->category;
+        $map = [
+            'Ручки' => 'Ручка дверная',
+            'Накладки' => 'Накладка под цилиндр',
+            'Фиксаторы' => 'Фиксатор',
+            'Ручки-защелки' => 'Ручка-защелка',
+            'Петли' => 'Петля дверная',
+            'Замки' => 'Замок',
+            'Защелки' => 'Защелка',
+            'Цилиндры' => 'Цилиндр',
+            'Шпингалеты' => 'Шпингалет',
+        ];
+
+        $name = '';
+        if (isset($map[$product->subCategory1])) {
+            $name = $map[$product->subCategory1]." ";
         }
 
-        $name .= ' '.$product->model;
+        $name .= $product->model;
         if (!empty($product->color)) {
-            $name .= ' / Цвет '.$product->color;
+            $name .= ' '.$product->color;
         }
-        if (!empty($product->glass)) {
-            $name .= ' / Стекло '.$product->glass;
-        }
-        $name .= ' / '.$product->manufacturer;
+
         return $name;
     }
 
