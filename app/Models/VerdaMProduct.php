@@ -4,7 +4,7 @@
 namespace App\Models;
 
 
-class ProfilProduct
+class VerdaMProduct
 {
     public $category = '';
     public $subCategory1 = '';

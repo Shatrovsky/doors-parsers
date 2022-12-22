@@ -2,7 +2,9 @@
 
 namespace App\Console\Commands;
 
+use App\Models\Product;
 use App\Models\ProfilProduct;
+use App\Models\VerdaMProduct;
 use Illuminate\Console\Command;
 use Illuminate\Support\Arr;
 use Symfony\Component\DomCrawler\Crawler;
@@ -29,12 +31,13 @@ class VerdaM extends Command
         'https://verda-m.ru/catalog/dveri-loyard/'
     ];
     protected $file;
-    protected string $category;
-    protected string $subCategory1;
-    protected string $subCategory2;
+    protected string $category = '';
+    protected string $subCategory1 = '';
+    protected string $subCategory2 = '';
     protected array $filterTypes = [];
     protected array $filterCanvasSizes = [];
     protected array $filterColors = [];
+    protected array $priceList = [];
     private array $modelUrls = [
         'https://verda-m.ru/catalog/dveri-loyard/dveri-vinyl-emalit/sevilya-07/'
     ];
@@ -73,6 +76,8 @@ class VerdaM extends Command
             foreach ($this->modelUrls as $modelUrl) {
                 $html = file_get_contents($modelUrl);
                 $crawler = new Crawler($html);
+                $this->getCategories($crawler);
+                dd($this->category, $this->subCategory1, $this->subCategory2);
                 $this->getFilters($crawler);
                 exit;
             }
@@ -151,6 +156,41 @@ class VerdaM extends Command
             $crawler = new Crawler($node);
             $this->filterCanvasSizes[] = $crawler->text();
         }
+    }
+
+    private function getCategories(Crawler $crawler)
+    {
+        $category = $crawler->filter('div.breadcrumbs-box > a')->eq(2);
+        if (count($category) > 0) {
+            $this->category = $category->text();
+        } else {
+            $this->category = '';
+        }
+        $category = $crawler->filter('div.breadcrumbs-box > a')->eq(3);
+        if (count($category) > 0) {
+            $this->subCategory1 = $category->text();
+        } else {
+            $this->subCategory1 = '';
+        }
+        $category = $crawler->filter('div.breadcrumbs-box > a')->eq(4);
+        if (count($category) > 0) {
+            $this->subCategory2 = $category->text();
+        } else {
+            $this->subCategory2 = '';
+        }
+    }
+
+    private function getProduct(Crawler $crawler)
+    {
+        $product = new VerdaMProduct();
+        $product->category = $this->category;
+        $product->subCategory1 = $this->subCategory1;
+    }
+
+    private function getPriceList(Crawler $crawler)
+    {
+        $price = [];
+        $priceListNodes = $crawler->filter('div.js-offer');
     }
 }
 
