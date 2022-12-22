@@ -29,6 +29,7 @@ class DveriComProduct
     public $image = '';
     public $videoUrl = '';
     public $canvasSize = '';
+    public $open = '';
     public $variantId = '';
     public $artikul = '';
     public $barcode = '';
@@ -70,6 +71,7 @@ class DveriComProduct
         'Изображения',
         'Ссылка на видео',
         'Свойство: Размер полотна',
+        'Свойство: Открывание',
         'ID варианта',
         'Артикул',
         'Штрих-код',

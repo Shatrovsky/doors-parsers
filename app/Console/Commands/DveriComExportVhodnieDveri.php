@@ -15,21 +15,21 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\DomCrawler\Crawler;
 
-class DveriComExport extends Command
+class DveriComLoader extends Command
 {
     /**
      * The name and signature of the console command.
      *
      * @var string
      */
-    protected $signature = 'export:dveri-com';
+    protected $signature = 'export:dveri-com-vhodnie-dveri';
 
     /**
      * The console command description.
      *
      * @var string
      */
-    protected $description = 'Экспорт данных с https://dveri.com/';
+    protected $description = 'Экспорт данных с https://dveri.com/ входные двери';
     protected $file;
 
     private $category = null;
@@ -143,22 +143,17 @@ class DveriComExport extends Command
 
     private function getProductVariants(DveriComProduct $product, DataProduct $dataProduct)
     {
-        $excludes = ['правое', 'с усилением', 'защелки'];
         if (!empty($dataProduct->options)) {
             foreach ($dataProduct->options as $option) {
-                $missing = false;
-                foreach ($excludes as $exclude) {
-                    if (strpos($option['title'], $exclude) !== false) {
-                        $missing = true;
-                        break;
-                    }
+                if (strpos($option['title'], 'левое')) {
+                    $product->open = 'левое';
+                    $product->canvasSize = trim(str_replace('левое', '', $option['title']));
+                } elseif (strpos($option['title'], 'правое')) {
+                    $product->open = 'правое';
+                    $product->canvasSize = trim(str_replace('правое', '', $option['title']));
+                } else {
+                    $product->canvasSize = $option['title'];
                 }
-                if ($missing == true) {
-                    continue;
-                }
-                $option['title'] = str_replace('левое', '', $option['title']);
-                $option['title'] = str_replace('без усиления ', '', $option['title']);
-                $product->canvasSize = $option['title'];
                 $product->artikul = $option['vendor_code'];
                 if (!empty($option['price_dealer'])) {
                     $product->netto = $option['price_dealer'] - $option['price_dealer'] / 100 * $option['discount_dealer'];
@@ -192,10 +187,6 @@ class DveriComExport extends Command
         }
     }
 
-    private function getCanvasSize()
-    {
-
-    }
     private function getPicture(DataProduct $dataProduct)
     {
         $dataPictures = $dataProduct->pictures;
@@ -214,20 +205,11 @@ class DveriComExport extends Command
 
     private function getProductName(DveriComProduct $product)
     {
-        if (strpos($product->category, 'двери')) {
-            $name = 'Дверь';
-        } elseif (in_array($product->category, ['Плинтус', 'Фурнитура и прочее'])) {
-            $name = '';
-        } else {
-            $name = $product->category;
-        }
+        $name = 'Входная дверь';
 
         $name .= ' '.$product->model;
         if (!empty($product->color)) {
-            $name .= ' / Цвет '.$product->color;
-        }
-        if (!empty($product->glass)) {
-            $name .= ' / Стекло '.$product->glass;
+            $name .= ' '.$product->color;
         }
         $name .= ' / '.$product->manufacturer;
         return $name;
@@ -235,7 +217,7 @@ class DveriComExport extends Command
 
     private function getCategories(): Collection
     {
-        $categories = Category::query()->whereNull('parent_id')->whereIn('id', [106])->get(['id', 'title']);
+        $categories = Category::query()->whereNull('parent_id')->whereIn('id', [24])->get(['id', 'title']);
         return $categories;
     }
 
@@ -250,25 +232,23 @@ class DveriComExport extends Command
         $description = '';
         $html = file_get_contents($url);
         $crawler = new Crawler($html);
-        $accessories = $crawler->filter('table.product__table.product__table--components');
-        if (count($accessories) > 0) {
-            $accessories = $accessories->outerHtml();
-            $accessories = preg_replace('|(<td class="product__table--td hidden-closed">)(.*)(</td>)|Uis', '',
-                $accessories);
-            $accessories = preg_replace('|(<td class="hidden-closed">)(.*)(</td>)|Uis', '', $accessories);
-            $accessories = str_replace('cellpadding="0" cellspacing="0"', 'cellpadding="5" cellspacing="5"',
-                $accessories);
-            $accessories = str_replace('/storage', 'https://dveri.com/storage', $accessories);
-            $description .= '<div><b>Комлектующие</b></div>'.$accessories;
-        }
-
         $mainNode = $crawler->filter('li.tabs__content-item')->first();
         $mainNodeCrawler = new Crawler($mainNode->html());
         $mainItems = $mainNodeCrawler->filter('div.product__property-list');
         if (!empty($mainItems)) {
-            if (!empty($description)) {
-                $description .= '<p></p>';
+            foreach ($mainItems as $mainItem) {
+                $mainCrawler = new Crawler($mainItem);
+                $mainDescription = $mainCrawler->html();
+                $mainDescription = preg_replace('|(<div class="product__property-name">)(.*)(</div>)|Uis',
+                    '$1<b>$2</b>$3', $mainDescription);
+                $description .= $mainDescription;
             }
+        }
+
+        $mainNode = $crawler->filter('li.tabs__content-item')->eq(1);
+        $mainNodeCrawler = new Crawler($mainNode->html());
+        $mainItems = $mainNodeCrawler->filter('div.product__property-list');
+        if (!empty($mainItems)) {
             foreach ($mainItems as $mainItem) {
                 $mainCrawler = new Crawler($mainItem);
                 $mainDescription = $mainCrawler->html();
