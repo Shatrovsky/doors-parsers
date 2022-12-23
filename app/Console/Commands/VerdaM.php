@@ -38,9 +38,8 @@ class VerdaM extends Command
     protected array $filterCanvasSizes = [];
     protected array $filterColors = [];
     protected array $priceList = [];
-    private array $modelUrls = [
-        'https://verda-m.ru/catalog/dveri-oblitsovannye-ekoshponom/dveri-skin-ekoshpon/geometriya/k-11/'
-    ];
+    protected string $model;
+    private array $modelUrls = [];
     private string $modelUrl;
     protected $count = 0;
 
@@ -64,20 +63,21 @@ class VerdaM extends Command
         $page = 1;
         foreach ($this->urls as $url) {
             $load = true;
-            /*            while ($load){
-                            $categoryUrl = $url . '?PAGEN_1=' . $page;
-                            $this->error($categoryUrl);
-                            $html = file_get_contents($categoryUrl);
-                            $crawler = new Crawler($html);
-                            $this->category = $crawler->filter('h1')->text();
-                            $load = $this->getModelUrls($crawler);
-                            $page++;
-                        }*/
-            $this->file = fopen('Межкомнатные двери экошпон.csv', 'w');
+            while ($load) {
+                $categoryUrl = $url.'?PAGEN_1='.$page;
+                $this->error($categoryUrl);
+                $html = file_get_contents($categoryUrl);
+                $crawler = new Crawler($html);
+                $this->category = $crawler->filter('h1')->text();
+                $load = $this->getModelUrls($crawler);
+                $page++;
+            }
+            $this->file = fopen($this->category.'.csv', 'w');
             fputcsv($this->file, VerdaMProduct::$headers, "\t");
-            foreach ($this->modelUrls as $modelUrl) {
-                $html = file_get_contents($modelUrl);
+            foreach ($this->modelUrls as $modelUrl => $model) {
+                $html = file_get_contents(self::URL.$modelUrl);
                 $this->modelUrl = $modelUrl;
+                $this->model = $model;
                 $crawler = new Crawler($html);
                 $this->getProduct($crawler);
                 $this->getCategories($crawler);
@@ -85,7 +85,6 @@ class VerdaM extends Command
 //                dd($this->priceList);
                 $this->getFilters($crawler);
                 $this->getProduct($crawler);
-                dd($this->filterColors, $this->filterTypes, $this->filterCanvasSizes);
                 exit;
             }
         }
@@ -97,11 +96,11 @@ class VerdaM extends Command
         foreach ($modelNodes as $modelNode) {
             $modelCrawler = new Crawler($modelNode);
             $url = $modelCrawler->attr('href');
-//            $this->info($url);
-            if (in_array($url, $this->modelUrls)) {
+            if (array_key_exists($url, $this->modelUrls)) {
                 return false;
             }
-            $this->modelUrls[] = $url;
+            $model = $modelCrawler->filter('span.cat-title')->text();
+            $this->modelUrls[$url] = $model;
         }
 
         return true;
@@ -133,6 +132,11 @@ class VerdaM extends Command
                     break;
             }
         }
+    }
+
+    private function getModel(Crawler $crawler)
+    {
+
     }
 
     private function getFilterTypes($nodes)
@@ -192,6 +196,7 @@ class VerdaM extends Command
         $product->subCategory2 = $this->subCategory2;
         $product->description = $this->getProductDescription($crawler);
         $product->parsingUrl = $this->modelUrl;
+        $product->model = $this->model;
         $product->name = $this->getProductName($crawler);
         $this->getProductVariants($product);
     }
@@ -236,11 +241,13 @@ class VerdaM extends Command
             $product->canvasSize = $price['canvas_size'];
             $product->glass = $price['type'] != 'Глухое' ? $price['type'] : '';
             $product->color = $this->filterColors[$price['color_id']]['name'];
+            $product->image = self::URL.$this->filterColors[$price['color_id']]['image'];
             $product->name = $this->getProductVariantName($product, $mainName);
             $product->metaTitle = $product->metaKeywords = $product->metaDescription = $product->name;
             $product->supplierArticul = $price['id'];
             $product->setInnerArticul();
-
+            $this->info($product->category.' - '.$product->subCategory1.' - '.$product->subCategory2.
+                ' - '.$product->name);
             $product->exportCsv($this->file);
         }
     }
@@ -258,10 +265,10 @@ class VerdaM extends Command
             $name .= ' / Цвет '.$product->color;
         }
         if (!empty($product->glass)) {
-            $name .= ' / Стекло '.$product->glass;
+            $name .= ' / '.$product->glass;
         }
+        $name .= ' / '.$product->manufacturer;
 
-        
         return $name;
     }
 

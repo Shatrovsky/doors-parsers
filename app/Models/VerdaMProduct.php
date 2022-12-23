@@ -39,7 +39,7 @@ class VerdaMProduct
     public $count = 100;
     public $weight = '';
     public $variantUrl = '';
-    public $manufacturer = 'Верда';
+    public $manufacturer = 'Двери Верда';
     public $parsingUrl = '';
     public $color = '';
     public $glass = '';
