@@ -43,10 +43,11 @@ class VerdaMProduct
     public $parsingUrl = '';
     public $color = '';
     public $glass = '';
-    public $molding = '';
     public $model = '';
     public $insert = '';
     public $edge = '';
+    public $supplierArticul = '';
+    public $innerArticul = '';
 
     public static $headers = [
         'Корневая',
@@ -86,15 +87,22 @@ class VerdaMProduct
         'Параметр: Ссылка на донер',
         'Параметр: Цвет',
         'Параметр: Стекло',
-        'Параметр: Молдинг',
         'Параметр: Модель',
         'Параметр: Вставка',
         'Параметр: Кромка',
+        'Параметр: Артикул поставщика',
+        'Параметр: Суррогатный артикул',
     ];
 
     public function exportCsv($file)
     {
         $data = (array) $this;
         fputcsv($file, $data, "\t");
+    }
+
+    public function setInnerArticul()
+    {
+        $string = $this->name.$this->canvasSize.$this->color.$this->glass;
+        $this->innerArticul = md5($string);
     }
 }

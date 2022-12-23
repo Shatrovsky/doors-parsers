@@ -39,8 +39,9 @@ class VerdaM extends Command
     protected array $filterColors = [];
     protected array $priceList = [];
     private array $modelUrls = [
-        'https://verda-m.ru/catalog/dveri-loyard/dveri-vinyl-emalit/sevilya-07/'
+        'https://verda-m.ru/catalog/dveri-oblitsovannye-ekoshponom/dveri-skin-ekoshpon/geometriya/k-11/'
     ];
+    private string $modelUrl;
     protected $count = 0;
 
     /**
@@ -72,13 +73,19 @@ class VerdaM extends Command
                             $load = $this->getModelUrls($crawler);
                             $page++;
                         }*/
-
+            $this->file = fopen('Межкомнатные двери экошпон.csv', 'w');
+            fputcsv($this->file, VerdaMProduct::$headers, "\t");
             foreach ($this->modelUrls as $modelUrl) {
                 $html = file_get_contents($modelUrl);
+                $this->modelUrl = $modelUrl;
                 $crawler = new Crawler($html);
+                $this->getProduct($crawler);
                 $this->getCategories($crawler);
-                dd($this->category, $this->subCategory1, $this->subCategory2);
+                $this->getPriceList($crawler);
+//                dd($this->priceList);
                 $this->getFilters($crawler);
+                $this->getProduct($crawler);
+                dd($this->filterColors, $this->filterTypes, $this->filterCanvasSizes);
                 exit;
             }
         }
@@ -110,32 +117,28 @@ class VerdaM extends Command
                 continue;
             }
             switch ($titleNode->text()) {
-                case 'Тип:':
-                    $filterNodes = $filterCrawler->filter('div.frm-select-parameter');
-                    $this->getFilterTypes($filterNodes);
-                    break;
-                case 'Размер:':
-                    $filterNodes = $filterCrawler->filter('div.frm-select-parameter');
-                    $this->getFilterCanvasSizes($filterNodes);
-                    break;
                 case 'Цвет:':
                     $filterNodes = $filterCrawler->filter('div.frm-select-color');
                     $this->getFilterColors($filterNodes);
                     break;
+                /*                case 'Тип:':
+                                    $filterNodes = $filterCrawler->filter('div.frm-select-parameter');
+                                    $this->getFilterTypes($filterNodes);
+                                    break;
+                                case 'Размер:':
+                                    $filterNodes = $filterCrawler->filter('div.frm-select-parameter');
+                                    $this->getFilterCanvasSizes($filterNodes);
+                                    break;*/
                 default:
                     break;
             }
         }
-        dd($this->filterTypes, $this->filterCanvasSizes, $this->filterColors);
     }
 
     private function getFilterTypes($nodes)
     {
         foreach ($nodes as $node) {
             $crawler = new Crawler($node);
-            if ($crawler->text() == 'Глухое') {
-                continue;
-            }
             $this->filterTypes[] = $crawler->text();
         }
     }
@@ -144,9 +147,10 @@ class VerdaM extends Command
     {
         foreach ($nodes as $node) {
             $crawler = new Crawler($node);
+            $id = $crawler->attr('data-color');
             $name = $crawler->filter('img')->attr('alt');
             $image = $crawler->filter('img')->attr('src');
-            $this->filterColors[$name] = $image;
+            $this->filterColors[$id] = ['name' => $name, 'image' => $image];
         }
     }
 
@@ -185,12 +189,81 @@ class VerdaM extends Command
         $product = new VerdaMProduct();
         $product->category = $this->category;
         $product->subCategory1 = $this->subCategory1;
+        $product->subCategory2 = $this->subCategory2;
+        $product->description = $this->getProductDescription($crawler);
+        $product->parsingUrl = $this->modelUrl;
+        $product->name = $this->getProductName($crawler);
+        $this->getProductVariants($product);
     }
 
     private function getPriceList(Crawler $crawler)
     {
-        $price = [];
+        $priceList = [];
         $priceListNodes = $crawler->filter('div.js-offer');
+        foreach ($priceListNodes as $priceListNode) {
+            $price = [
+                'id' => '',
+                'color_id' => '',
+                'type' => '',
+                'canvas_size' => '',
+                'price' => 0
+            ];
+            $priceCrawler = new Crawler($priceListNode);
+            $price['id'] = $priceCrawler->attr('data-id') ?? '';
+            $price['color_id'] = $priceCrawler->attr('data-color') ?? '';
+            $price['type'] = $priceCrawler->attr('data-type') ?? '';
+            $price['canvas_size'] = $priceCrawler->attr('data-size') ?? '';
+            $price['price'] = $priceCrawler->attr('data-price') ?? '';
+            $priceList[] = $price;
+        }
+        $this->priceList = $priceList;
     }
+
+    private function getProductDescription(Crawler $crawler)
+    {
+        $description = $crawler->filter('div.info-inner-wrap')->outerHtml();
+        return $description;
+    }
+
+    private function getProductVariants(VerdaMProduct $product)
+    {
+        $mainName = $product->name;
+        foreach ($this->priceList as $price) {
+            if (!isset($this->filterColors[$price['color_id']])) {
+                continue;
+            }
+            $product->price = $price['price'];
+            $product->canvasSize = $price['canvas_size'];
+            $product->glass = $price['type'] != 'Глухое' ? $price['type'] : '';
+            $product->color = $this->filterColors[$price['color_id']]['name'];
+            $product->name = $this->getProductVariantName($product, $mainName);
+            $product->metaTitle = $product->metaKeywords = $product->metaDescription = $product->name;
+            $product->supplierArticul = $price['id'];
+            $product->setInnerArticul();
+
+            $product->exportCsv($this->file);
+        }
+    }
+
+    private function getProductName(Crawler $crawler)
+    {
+        $name = $crawler->filter('h1')->text();
+        return $name;
+    }
+
+    private function getProductVariantName(VerdaMProduct $product, string $mainName)
+    {
+        $name = $mainName;
+        if (!empty($product->color)) {
+            $name .= ' / Цвет '.$product->color;
+        }
+        if (!empty($product->glass)) {
+            $name .= ' / Стекло '.$product->glass;
+        }
+
+        
+        return $name;
+    }
+
 }
 
