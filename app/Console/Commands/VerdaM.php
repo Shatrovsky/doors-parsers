@@ -2,13 +2,10 @@
 
 namespace App\Console\Commands;
 
-use App\Models\Product;
-use App\Models\ProfilProduct;
 use App\Models\VerdaMProduct;
 use Illuminate\Console\Command;
-use Illuminate\Support\Arr;
+use Illuminate\Support\Facades\Cache;
 use Symfony\Component\DomCrawler\Crawler;
-use function Symfony\Component\DomCrawler\text;
 
 class VerdaM extends Command
 {
@@ -28,7 +25,14 @@ class VerdaM extends Command
     protected $description = 'Парсинг https://verda-m.ru';
 
     protected $urls = [
-        'https://verda-m.ru/catalog/dveri-loyard/'
+        'https://verda-m.ru/catalog/dveri-oblitsovannye-ekoshponom/',
+        'https://verda-m.ru/catalog/dveri-loyard/',
+        'https://verda-m.ru/catalog/mezhkomnatnye-dveri-vinil/',
+        'https://verda-m.ru/catalog/dveri-emal/',
+        'https://verda-m.ru/catalog/dveri-oblitsovannye-shponom/',
+        'https://verda-m.ru/catalog/dveri-laminirovannye/',
+        'https://verda-m.ru/catalog/metall-dveri/',
+        'https://verda-m.ru/catalog/stroitelnye-dveri/',
     ];
     protected $file;
     protected string $category = '';
@@ -38,6 +42,7 @@ class VerdaM extends Command
     protected array $filterCanvasSizes = [];
     protected array $filterColors = [];
     protected array $priceList = [];
+    protected array $images = [];
     protected string $model;
     private array $modelUrls = [];
     private string $modelUrl;
@@ -60,9 +65,13 @@ class VerdaM extends Command
      */
     public function handle()
     {
-        $page = 1;
+        $this->getImages();
+        $this->file = fopen('Verda2.csv', 'w');
+        fputcsv($this->file, VerdaMProduct::$headers, "\t");
         foreach ($this->urls as $url) {
+            $page = 1;
             $load = true;
+            $this->modelUrls = [];
             while ($load) {
                 $categoryUrl = $url.'?PAGEN_1='.$page;
                 $this->error($categoryUrl);
@@ -72,8 +81,6 @@ class VerdaM extends Command
                 $load = $this->getModelUrls($crawler);
                 $page++;
             }
-            $this->file = fopen($this->category.'.csv', 'w');
-            fputcsv($this->file, VerdaMProduct::$headers, "\t");
             foreach ($this->modelUrls as $modelUrl => $model) {
                 $html = file_get_contents(self::URL.$modelUrl);
                 $this->modelUrl = $modelUrl;
@@ -85,7 +92,6 @@ class VerdaM extends Command
 //                dd($this->priceList);
                 $this->getFilters($crawler);
                 $this->getProduct($crawler);
-                exit;
             }
         }
     }
@@ -134,13 +140,9 @@ class VerdaM extends Command
         }
     }
 
-    private function getModel(Crawler $crawler)
-    {
-
-    }
-
     private function getFilterTypes($nodes)
     {
+        $this->filterTypes = [];
         foreach ($nodes as $node) {
             $crawler = new Crawler($node);
             $this->filterTypes[] = $crawler->text();
@@ -149,17 +151,41 @@ class VerdaM extends Command
 
     private function getFilterColors($nodes)
     {
+        $this->filterColors = [];
         foreach ($nodes as $node) {
             $crawler = new Crawler($node);
             $id = $crawler->attr('data-color');
-            $name = $crawler->filter('img')->attr('alt');
-            $image = $crawler->filter('img')->attr('src');
-            $this->filterColors[$id] = ['name' => $name, 'image' => $image];
+            $name = $crawler->filter('label')->attr('title');
+            $this->filterColors[$id] = ['name' => $name];
         }
+    }
+
+    private function getImages()
+    {
+        $images = Cache::get('images');
+        if (!empty($images)) {
+            $this->images = $images;
+            return;
+        }
+        $content = file_get_contents("http://verda-m.ru/export/catalog.xml");
+        $crawler = new Crawler($content);
+        $images = [];
+        $nodes = $crawler->filter('offer');
+        foreach ($nodes as $node) {
+            $imageCrawler = new Crawler($node);
+            $id = $imageCrawler->attr('id');
+            $image = $imageCrawler->filter('picture');
+            if (count($image) > 0) {
+                $images[$id] = $image->text();
+            }
+        }
+        Cache::put('images', $images, now()->addMinutes(10));
+        $this->images = $images;
     }
 
     private function getFilterCanvasSizes($nodes)
     {
+        $this->filterCanvasSizes = [];
         foreach ($nodes as $node) {
             $crawler = new Crawler($node);
             $this->filterCanvasSizes[] = $crawler->text();
@@ -195,7 +221,7 @@ class VerdaM extends Command
         $product->subCategory1 = $this->subCategory1;
         $product->subCategory2 = $this->subCategory2;
         $product->description = $this->getProductDescription($crawler);
-        $product->parsingUrl = $this->modelUrl;
+        $product->parsingUrl = self::URL.$this->modelUrl;
         $product->model = $this->model;
         $product->name = $this->getProductName($crawler);
         $this->getProductVariants($product);
@@ -211,14 +237,16 @@ class VerdaM extends Command
                 'color_id' => '',
                 'type' => '',
                 'canvas_size' => '',
-                'price' => 0
+                'price' => 0,
+                'image' => ''
             ];
             $priceCrawler = new Crawler($priceListNode);
             $price['id'] = $priceCrawler->attr('data-id') ?? '';
             $price['color_id'] = $priceCrawler->attr('data-color') ?? '';
             $price['type'] = $priceCrawler->attr('data-type') ?? '';
-            $price['canvas_size'] = $priceCrawler->attr('data-size') ?? '';
-            $price['price'] = $priceCrawler->attr('data-price') ?? '';
+            $price['canvas_size'] = !empty($priceCrawler->attr('data-size')) ? $priceCrawler->attr('data-size') : '';
+            $price['price'] = !empty($priceCrawler->attr('data-price')) ? $priceCrawler->attr('data-price') : 1;
+            $price['image'] = $this->images[$price['id']] ?? '';
             $priceList[] = $price;
         }
         $this->priceList = $priceList;
@@ -238,10 +266,20 @@ class VerdaM extends Command
                 continue;
             }
             $product->price = $price['price'];
+            if ($product->price == 0) {
+                $product->price = 1;
+            }
             $product->canvasSize = $price['canvas_size'];
-            $product->glass = $price['type'] != 'Глухое' ? $price['type'] : '';
+            if ($product->canvasSize == 'empty') {
+                $product->canvasSize = '';
+            }
+            if (strpos($price['type'], 'лухо') === false) {
+                $product->glass = $price['type'];
+            } else {
+                $product->glass = '';
+            }
             $product->color = $this->filterColors[$price['color_id']]['name'];
-            $product->image = self::URL.$this->filterColors[$price['color_id']]['image'];
+            $product->image = $this->images[$price['id']] ?? '';
             $product->name = $this->getProductVariantName($product, $mainName);
             $product->metaTitle = $product->metaKeywords = $product->metaDescription = $product->name;
             $product->supplierArticul = $price['id'];
