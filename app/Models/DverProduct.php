@@ -6,7 +6,7 @@ namespace App\Models;
 
 class DverProduct
 {
-    public $category = '';
+    public $category = 'Межкомнатные двери';
     public $subCategory1 = '';
     public $subCategory2 = '';
     public $id = '';
@@ -39,7 +39,7 @@ class DverProduct
     public $count = 100;
     public $weight = '';
     public $variantUrl = '';
-    public $manufacturer = 'Скамбио Порте';
+    public $manufacturer = '';
     public $parsingUrl = '';
     public $color = '';
     public $glass = '';

@@ -25,10 +25,21 @@ class DverCom extends Command
     protected $description = 'Парсинг https://dver.com';
 
     protected $urls = [
-//        'https://dver.com/mezhkomnatnye-dveri/dveri-shponirovannye/',
-        'https://dver.com/mezhkomnatnye-dveri/dveri-krashenye-emal/' => [
-            'category' => 'Межкомнатные двери',
-        ]
+        'https://dver.com/mezhkomnatnye-dveri/dveri-shponirovannye/' => '',
+        'https://dver.com/mezhkomnatnye-dveri/dveri-krashenye-emal/' => '',
+//        'https://dver.com/mezhkomnatnye-dveri/dveri-ekoshpon/' => '',
+        'https://dver.com/mezhkomnatnye-dveri/glyanets/' => [
+            'manufacturer' => 'PROFILO PORTE',
+        ],
+        'https://dver.com/mezhkomnatnye-dveri/dveri-iz-massiva/' => [
+            'manufacturer' => 'Дверная Биржа',
+        ],
+        'https://dver.com/mezhkomnatnye-dveri/dveri-pod-pokrasku/' => [
+            'manufacturer' => 'Дверная Биржа',
+        ],
+        'https://dver.com/mezhkomnatnye-dveri/dveri-dlya-stroyki/' => [
+            'manufacturer' => 'Дверная Биржа',
+        ],
     ];
     protected $file;
     protected string $category = '';
@@ -36,6 +47,7 @@ class DverCom extends Command
     protected string $subCategory2 = '';
     private array $modelUrls = [];
     private string $modelUrl;
+    private string $manufacturer;
     protected $count = 0;
 
     /**
@@ -55,18 +67,14 @@ class DverCom extends Command
      */
     public function handle()
     {
-        $this->file = fopen('dver.csv', 'w');
+        $this->file = fopen('dver2.csv', 'w');
         fputcsv($this->file, DverProduct::$headers, "\t");
         foreach ($this->urls as $url => $data) {
-            $this->category = $data['category'];
+            $this->manufacturer = $data['manufacturer'] ?? '';
             $html = file_get_contents($url);
             $crawler = new Crawler($html);
             $this->subCategory1 = $crawler->filter('h1')->text();
-            $pages = $this->getPages($crawler);
-            if (empty($pages)) {
-                $pages = [$url];
-            }
-            $this->getModelUrls($pages);
+            $this->getModelUrls($url);
             foreach ($this->modelUrls as $modelUrl) {
                 $html = file_get_contents($modelUrl);
                 $crawler = new Crawler($html);
@@ -76,17 +84,26 @@ class DverCom extends Command
         }
     }
 
-    private function getModelUrls(array $urls)
+    private function getModelUrls(string $url)
     {
-        foreach ($urls as $url) {
-            $html = file_get_contents($url);
+        $itemCount = 50;
+        $page = 1;
+        while (true) {
+            $from = ($page - 1) * $itemCount;
+            $pageUrl = $url.'index.php?from='.$from.'&to=50&page='.$page;
+            $this->info($pageUrl);
+            $html = file_get_contents($pageUrl);
             $crawler = new Crawler($html);
             $modelNodes = $crawler->filter('div.transport__item');
+            if (count($modelNodes) == 0) {
+                break;
+            }
             foreach ($modelNodes as $modelNode) {
                 $modelCrawler = new Crawler($modelNode);
                 $modelUrl = $modelCrawler->filter('a')->attr('href');
                 $this->modelUrls[] = self::URL.$modelUrl;
             }
+            $page++;
         }
     }
 
@@ -94,14 +111,17 @@ class DverCom extends Command
     private function getProduct(Crawler $crawler)
     {
         $product = new DverProduct();
-        $product->category = $this->category;
         $product->subCategory1 = $this->subCategory1;
         $product->subCategory2 = $this->subCategory2;
+        if (!empty($this->manufacturer)) {
+            $product->manufacturer = $this->manufacturer;
+        } else {
+            $product->manufacturer = $this->getManufacturer($crawler);
+        }
         $articul = $crawler->filter('#first_articul')->text();
         $this->modelUrl = str_replace($articul, '', $this->modelUrl);
         $canvasSizes = $this->getCanvasSizes($crawler);
         $this->getProductVariants($product, $canvasSizes);
-        exit;
     }
 
 
@@ -124,7 +144,9 @@ class DverCom extends Command
                 if (strpos($header, 'Микроразметка') !== false) {
                     continue;
                 }
-
+                if (strpos($header, 'Артикул') !== false) {
+                    continue;
+                }
                 $description .= '<div>';
                 $description .= '<b>'.$header.'</b>';
                 $valueNode = $rowCrawler->filter('td')->eq(1);
@@ -210,23 +232,13 @@ class DverCom extends Command
         if (!empty($product->glass)) {
             $name .= ' / '.$product->glass;
         }
-        $name .= ' / '.$product->manufacturer;
+        if ($product->manufacturer != 'Дверная Биржа') {
+            $name .= ' / Двери '.$product->manufacturer;
+        } else {
+            $name .= ' / '.$product->manufacturer;
+        }
 
         return $name;
-    }
-
-    private function getPages(Crawler $crawler)
-    {
-        $node = $crawler->filter('#pager_top');
-        $crawler = new Crawler($node->outerHtml());
-        $nodes = $crawler->filter('a');
-        $pages = [];
-        foreach ($nodes as $node) {
-            $urlCrawler = new Crawler($node);
-            $url = $urlCrawler->attr('href');
-            $pages[] = self::URL.$url;
-        }
-        return $pages;
     }
 
     private function getModel(Crawler $crawler)
@@ -267,10 +279,21 @@ class DverCom extends Command
         $nodes = $crawler->filter('div.size_selecting_div');
         foreach ($nodes as $node) {
             $crawler = new Crawler($node);
-            $canvasSizes[$crawler->attr('id')] = $crawler->text();
+            $canvasSize = $crawler->text();
+            $canvasSize = str_replace(' х ', '*', $canvasSize);
+            $canvasSizes[$crawler->attr('id')] = $canvasSize;
         }
 
         return $canvasSizes;
+    }
+
+    private function getManufacturer(Crawler $crawler)
+    {
+        $node = $crawler->filter('h3 > a')->eq(2);
+        if (count($node) > 0) {
+            return $node->text();
+        }
+        return '';
     }
 }
 
