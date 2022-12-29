@@ -71,12 +71,12 @@ class DverCom extends Command
         fputcsv($this->file, DverProduct::$headers, "\t");
         foreach ($this->urls as $url => $data) {
             $this->manufacturer = $data['manufacturer'] ?? '';
-            $html = file_get_contents($url);
-            $crawler = new Crawler($html);
-            $this->subCategory1 = $crawler->filter('h1')->text();
             $this->getModelUrls($url);
             foreach ($this->modelUrls as $modelUrl) {
                 $html = file_get_contents($modelUrl);
+                if (!$html) {
+                    continue;
+                }
                 $crawler = new Crawler($html);
                 $this->modelUrl = $modelUrl;
                 $this->getProduct($crawler);
@@ -88,11 +88,15 @@ class DverCom extends Command
     {
         $itemCount = 50;
         $page = 1;
+        $modelUrls = [];
         while (true) {
             $from = ($page - 1) * $itemCount;
             $pageUrl = $url.'index.php?from='.$from.'&to=50&page='.$page;
             $this->info($pageUrl);
             $html = file_get_contents($pageUrl);
+            if (!$html) {
+                break;
+            }
             $crawler = new Crawler($html);
             $modelNodes = $crawler->filter('div.transport__item');
             if (count($modelNodes) == 0) {
@@ -101,12 +105,34 @@ class DverCom extends Command
             foreach ($modelNodes as $modelNode) {
                 $modelCrawler = new Crawler($modelNode);
                 $modelUrl = $modelCrawler->filter('a')->attr('href');
-                $this->modelUrls[] = self::URL.$modelUrl;
+                $modelUrls[] = self::URL.$modelUrl;
             }
             $page++;
         }
+        if (empty($modelUrls)) {
+            $this->getTableModelUrls($url);
+        } else {
+            $this->modelUrls = $modelUrls;
+        }
     }
 
+    private function getTableModelUrls(string $url)
+    {
+        $html = file_get_contents($url);
+        $crawler = new Crawler($html);
+        $node = $crawler->filter('td.content')->html();
+        $tdCrawler = new Crawler($node);
+        $tdNnode = $tdCrawler->filter('td')->eq(7)->html();
+        $aCrawler = new Crawler($tdNnode);
+        $nodes = $aCrawler->filter('a');
+        $modelUrls = [];
+        foreach ($nodes as $node) {
+            $crawler = new Crawler($node);
+            $modelUrl = self::URL.$crawler->attr('href');
+            $modelUrls[] = $modelUrl;
+        }
+        $this->modelUrls = $modelUrls;
+    }
 
     private function getProduct(Crawler $crawler)
     {
@@ -203,10 +229,16 @@ class DverCom extends Command
         foreach ($canvasSizes as $articul => $canvasSize) {
             $product->parsingUrl = $this->modelUrl.$articul;
             $this->info($product->parsingUrl);
-
             $html = file_get_contents($product->parsingUrl);
+            if (!$html) {
+                return;
+            }
             $crawler = new Crawler($html);
             $product->description = $this->getProductDescription($crawler);
+            $categories = $this->getCategories($crawler);
+            $product->category = $categories['category'];
+            $product->subCategory1 = $categories['sub_category1'];
+            $product->subCategory2 = $categories['sub_category2'];
             $product->artikul = $articul;
             $modelData = $this->getModel($crawler);
             $product->model = $modelData['model'];
@@ -294,6 +326,42 @@ class DverCom extends Command
             return $node->text();
         }
         return '';
+    }
+
+    private function getCategories(Crawler $crawler)
+    {
+
+        $categories = [
+            'category' => '',
+            'sub_category1' => '',
+            'sub_category2' => '',
+        ];
+        $node = $crawler->filter('h3 > a');
+        for ($i = 0; $i < count($node); $i++) {
+            if ($i == 1) {
+                $categories['category'] = $node->eq($i)->text();
+            }
+            if ($i == 2) {
+                $categories['sub_category1'] = $node->eq($i)->text();
+            }
+            if ($i == 3) {
+                $categories['sub_category2'] = $node->eq($i)->text();
+            }
+        }
+        return $categories;
+    }
+
+    private function getContent($url)
+    {
+        for ($i = 1; $i < 3; $i++) {
+            try {
+                $html = file_get_contents($url);
+                return $html;
+            } catch (\Exception $exception) {
+                sleep(3);
+            }
+        }
+        return false;
     }
 }
 
