@@ -26,9 +26,9 @@ class LuxorDveri extends Command
     protected $description = 'Парсинг https://luxor-dveri.ru/';
 
     protected $urls = [
-        'https://luxor-dveri.ru/catalog/mezhkomnatnye-dveri/luxor-shpon/?SHOW-BY=3' => 'Двери в шпоне',
-        'https://luxor-dveri.ru/catalog/mezhkomnatnye-dveri/ekoshpon/?SHOW-BY=3' => 'Двери в экошпоне',
-        'https://luxor-dveri.ru/catalog/mezhkomnatnye-dveri/emal/?SHOW-BY=3' => 'Двери в эмали',
+        'https://luxor-dveri.ru/catalog/mezhkomnatnye-dveri/luxor-shpon/?SHOW-BY=3' => 'Межкомнатные двери luxor (шпон)',
+        'https://luxor-dveri.ru/catalog/mezhkomnatnye-dveri/ekoshpon/?SHOW-BY=3' => 'Межкомнатные двери экошпон',
+        'https://luxor-dveri.ru/catalog/mezhkomnatnye-dveri/emal/?SHOW-BY=3' => 'Межкомнатные двери эмаль',
     ];
     protected $file;
     protected string $category = '';
@@ -56,10 +56,10 @@ class LuxorDveri extends Command
      */
     public function handle()
     {
-        $this->file = fopen('luxor-dveri.csv', 'w');
+        $this->file = fopen('luxor-dveri3.csv', 'w');
         fputcsv($this->file, LuxorProduct::$headers, "\t");
         foreach ($this->urls as $url => $data) {
-            $this->subCategory1 = $data;
+            $this->category = $data;
             $this->getModelUrls($url);
             foreach ($this->modelUrls as $modelUrl) {
                 $html = file_get_contents($modelUrl);
@@ -72,6 +72,7 @@ class LuxorDveri extends Command
 
     private function getModelUrls(string $url)
     {
+        $this->modelUrls = [];
         $html = file_get_contents($url);
         $crawler = new Crawler($html);
         $modelNodes = $crawler->filter('li.catalog_item');
@@ -86,6 +87,7 @@ class LuxorDveri extends Command
     private function getProduct(Crawler $crawler)
     {
         $product = new LuxorProduct();
+        $product->category = $this->category;
         $product->subCategory1 = $this->subCategory1;
         $product->subCategory2 = $this->subCategory2;
         $canvasSizes = $this->getCanvasSizes($crawler);
@@ -102,91 +104,22 @@ class LuxorDveri extends Command
 
     private function getProductDescription(Crawler $crawler)
     {
-        $description = '';
-        $complect = $this->getComplectDescription($crawler);
-        if (!empty($complect)) {
-            $description .= "<b>Комплектующие</b><br>";
-            $description .= $complect;
-        }
-        $node = $crawler->filter('#opisanie_table');
-        if (count($node) > 0) {
-            $description .= "<p><b>Описание</b></p>";
-            $crawler = new Crawler($node->html());
-            $rows = $crawler->filter('tr');
-            foreach ($rows as $row) {
-                $rowCrawler = new Crawler($row);
-                $header = trim($rowCrawler->filter('td')->eq(0)->text());
-                if (strpos($header, 'Микроразметка') !== false) {
-                    continue;
-                }
-                if (strpos($header, 'Артикул') !== false) {
-                    continue;
-                }
-                $description .= '<div>';
-                $description .= '<b>'.$header.'</b>';
-                $valueNode = $rowCrawler->filter('td')->eq(1);
-                if (count($valueNode) != 0) {
-                    $description .= ' '.trim($valueNode->text());
-                }
-                $description .= '</div>';
-            }
-        }
-
-        return $description;
-    }
-
-    private function getComplectDescription(Crawler $crawler)
-    {
-        $description = '';
-        $node = $crawler->filter('#komplekt_table');
-        if (count($node) > 0) {
-            $node = $node->html();
-            $complectCrawler = new Crawler($node);
-            $cells = $complectCrawler->filter('td');
-            if (count($cells) > 0) {
-                foreach ($cells as $cell) {
-                    $crawler = new Crawler($cell);
-                    $html = $crawler->html();
-                    $cellCrawler = new Crawler($html);
-                    $span = $cellCrawler->filter('span');
-                    if (count($span) > 0) {
-                        for ($i = 0; $i < count($span); $i++) {
-                            $html = str_replace($span->eq($i)->outerHtml(), '', $html);
-                            $html = str_replace(' - <br>', '<br>', $html);
-                        }
-                    }
-                    $images = $crawler->filter('a');
-                    if (count($images) > 0) {
-                        for ($i = 0; $i < count($images); $i++) {
-                            $aHtml = $images->eq($i)->outerHtml();
-                            $imageCrawler = new Crawler($aHtml);
-                            $image = $imageCrawler->filter('img')->outerHtml();
-                            $html = str_replace($aHtml, $image.'<br>', $html);
-                        }
-                    }
-                    $description .= $html;
-                    $description .= '<br>';
-                }
-            }
-        }
+        $description = $crawler->filter('div.tabs__content ')->eq(0)->html();
         return $description;
     }
 
     private function getProductVariants(LuxorProduct $product, Crawler $crawler)
     {
+        $fullname = $crawler->filter('span.name')->text();
+        $product->model = $this->getModel($crawler);
         $product->description = $this->getProductDescription($crawler);
         $product->artikul = $this->getArticul($crawler);
         $product->color = $this->getColor($crawler);
-        $product->glass = $this->getGlass($crawler);
-        dd($product);
-        $modelData = $this->getModel($crawler);
-        $product->model = $modelData['model'];
-        $product->color = $modelData['color'];
-        $product->glass = $modelData['glass'];
+        $product->glass = $this->getGlass($fullname);
+        $product->price = (int) $crawler->filter('#itog-price')->text();
         $product->name = $this->getProductName($product);
         $product->metaDescription = $product->metaKeywords = $product->metaTitle = $product->name;
-        $product->price = $crawler->filter('#price_for_polotno_detail_page')->text();
-        $product->image = self::URL.$crawler->filter('#main_image_big')->attr('src');
+        $product->image = self::URL.$crawler->filter('div.photo > img')->attr('data-webp-data-src');
         $this->info($product->name.' - '.$product->artikul);
         $product->exportCsv($this->file);
     }
@@ -202,12 +135,14 @@ class LuxorDveri extends Command
     {
         $node = $crawler->filter('ul.color > li.active > img');
         if (count($node) > 0) {
-            return $node->attr('title');
+            $color = $node->attr('title');
+            $color = mb_strtolower(str_replace('ые', 'ый', $color));
+            return $color;
         }
         return '';
     }
 
-    private function getGlass(Crawler $crawler)
+    private function getGlass(string $name)
     {
         $glassMaps = [
             'Глухие' => '',
@@ -217,7 +152,6 @@ class LuxorDveri extends Command
             'Со стеклом' => 'Стекло'
         ];
 
-        $name = $crawler->filter('span.name')->text();
         foreach ($glassMaps as $key => $glass) {
             if (strpos($name, $key) !== false) {
                 return $glass;
@@ -226,7 +160,7 @@ class LuxorDveri extends Command
         return '';
     }
 
-    private function getProductName(DverProduct $product)
+    private function getProductName(LuxorProduct $product)
     {
         $name = 'Дверь '.$product->model;
         if (!empty($product->color)) {
@@ -235,45 +169,20 @@ class LuxorDveri extends Command
         if (!empty($product->glass)) {
             $name .= ' / '.$product->glass;
         }
-        if ($product->manufacturer != 'Дверная Биржа') {
-            $name .= ' / Двери '.$product->manufacturer;
-        } else {
-            $name .= ' / '.$product->manufacturer;
-        }
+        $name .= ' / Двери Люксор (LUXOR)';
 
         return $name;
     }
 
     private function getModel(Crawler $crawler)
     {
-        $data = [
-            'articul' => '',
-            'model' => '',
-            'color' => '',
-            'glass' => ''
-        ];
-        $node = $crawler->filter('#opisanie_table')->html();
-        $crawler = new Crawler($node);
-        $rows = $crawler->filter('tr');
-        foreach ($rows as $row) {
-            $rowCrawler = new Crawler($row);
-            $header = trim($rowCrawler->filter('td')->eq(0)->text());
-            switch ($header) {
-                case 'Модель:':
-                    $data['model'] = $header = trim($rowCrawler->filter('td')->eq(1)->text());
-                    break;
-                case 'Цвет:':
-                    $data['color'] = $header = trim($rowCrawler->filter('td')->eq(1)->text());
-                    break;
-                case 'Стекло:':
-                    $data['glass'] = $header = trim($rowCrawler->filter('td')->eq(1)->text());
-                    break;
-                default:
-                    break;
-            }
-        }
-
-        return $data;
+        $fullname = $crawler->filter('h1')->text();
+        $name = preg_replace('/^(.+?)\s\(.+$/', '\\1', $fullname);
+        $name = preg_replace('/^(.+?\d)\s.+$/', '\\1', $name);
+        $name = str_replace('Межкомнатные двери', '', $name);
+        $name = str_replace('Модель', '', $name);
+        $name = trim($name);
+        return $name;
     }
 
     private function getCanvasSizes(Crawler $crawler)
@@ -283,18 +192,11 @@ class LuxorDveri extends Command
         foreach ($nodes as $node) {
             $crawler = new Crawler($node);
             $canvasSize = $crawler->text();
+            $arrCanvasSizes = explode("х", $canvasSize);
+            $canvasSize = $arrCanvasSizes[1] / 10 .'*'.$arrCanvasSizes[0] / 10;
             $canvasSizes[$crawler->attr('id')] = $canvasSize;
         }
         return $canvasSizes;
-    }
-
-    private function getManufacturer(Crawler $crawler)
-    {
-        $node = $crawler->filter('h3 > a')->eq(2);
-        if (count($node) > 0) {
-            return $node->text();
-        }
-        return '';
     }
 }
 

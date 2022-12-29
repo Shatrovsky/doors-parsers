@@ -6,7 +6,7 @@ namespace App\Models;
 
 class LuxorProduct
 {
-    public $category = 'Межкомнатные двери';
+    public $category = '';
     public $subCategory1 = '';
     public $subCategory2 = '';
     public $id = '';
