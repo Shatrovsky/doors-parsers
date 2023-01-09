@@ -15,7 +15,7 @@ use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\DB;
 use Symfony\Component\DomCrawler\Crawler;
 
-class DveriComLoader extends Command
+class DveriComExportVhodnieDveri extends Command
 {
     /**
      * The name and signature of the console command.

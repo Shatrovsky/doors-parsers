@@ -8,11 +8,7 @@ use App\Models\DveriComProduct;
 use App\Models\Property;
 use App\Models\PropertyValue;
 use Illuminate\Console\Command;
-use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Collection;
-use Illuminate\Database\Eloquent\Relations\BelongsTo;
-use Illuminate\Support\Arr;
-use Illuminate\Support\Facades\DB;
 use Symfony\Component\DomCrawler\Crawler;
 
 class DveriComExport extends Command
@@ -249,7 +245,7 @@ class DveriComExport extends Command
 
     private function getCategories(): Collection
     {
-        $categories = Category::query()->whereNull('parent_id')->whereIn('id', [106])->get(['id', 'title']);
+        $categories = Category::query()->whereNull('parent_id')->whereIn('id', [300])->get(['id', 'title']);
         return $categories;
     }
 
@@ -260,7 +256,8 @@ class DveriComExport extends Command
             'Для входных дверей',
             'Цифры'
         ];
-        $categories = Category::query()->where('parent_id', $id)->whereNotIn('title', $excludeCategories)->get([
+        $categories = Category::query()->where('parent_id', $id)->where('id', 304)->whereNotIn('title',
+            $excludeCategories)->get([
             'id', 'title'
         ]);
         return $categories;

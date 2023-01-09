@@ -11,7 +11,6 @@ use App\Models\DataAttribute;
 use App\Models\DataAttributeValue;
 use App\Models\DataProduct;
 use App\Models\Glass;
-use App\Models\Product;
 use App\Models\Property;
 use App\Models\PropertyValue;
 use App\Models\Trademark;
@@ -71,7 +70,7 @@ class DveriComLoader extends Command
 
     private function getContent()
     {
-        $source = 'app/data/moskva.json';
+        $source = 'https://dveri.com/export/json/moskva';
         $data = file_get_contents($source);
         return json_decode($data, true);
     }
