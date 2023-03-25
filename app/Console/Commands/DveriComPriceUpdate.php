@@ -64,7 +64,7 @@ class DveriComPriceUpdate extends Command
                     $this->info($url);
                 } else {
                     $price = $this->priceUrlList[$url];
-                    $line[6] = ceil($price['price_dealer'] - $price['price_dealer'] / 100 * $price['discount_dealer']);
+                    $line[6] = ceil($price['price_dealer']);
                     $line[5] = ceil($line[6] * 1.3 - 4);
                 }
             } else {
@@ -72,7 +72,7 @@ class DveriComPriceUpdate extends Command
                     $this->error($vendorCode);
                 } else {
                     $price = $this->priceList[$vendorCode];
-                    $line[6] = ceil($price['price_dealer'] - $price['price_dealer'] / 100 * $price['discount_dealer']);
+                    $line[6] = ceil($price['price_dealer']);
                     $line[5] = ceil($line[6] * 1.3 - 4);
                 }
             }
