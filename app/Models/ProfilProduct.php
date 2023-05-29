@@ -6,6 +6,9 @@ namespace App\Models;
 
 class ProfilProduct
 {
+    public $category = '';
+    public $subCategory1 = '';
+    public $subCategory2 = '';
     public $id = '';
     public $name = '';
     public $nameUrl = '';
@@ -44,8 +47,12 @@ class ProfilProduct
     public $model = '';
     public $insert = '';
     public $edge = '';
+    public $profile = '';
 
     public static $headers = [
+        'Корневая',
+        'Подкатегория1',
+        'Подкатегория2',
         'ID товара',
         'Название товара или услуги',
         'Название товара в URL',
@@ -84,6 +91,7 @@ class ProfilProduct
         'Параметр: Модель',
         'Параметр: Вставка',
         'Параметр: Кромка',
+        'Параметр: Профиль',
     ];
 
     public function exportCsv($file)

@@ -23,43 +23,77 @@ class ProfilDoors extends Command
      * @var string
      */
     protected $description = 'Парсинг https://profildoors.ru/';
-
     protected $urls = [
-        /*        'https://profildoors.ru/catalog/serija_u/' => [
-                    'additional_image' => 'https://static.insales-cdn.com/r/3G--XWQa9xY/rs:fit:1000:1000:1/plain/images/products/1/7956/617422612/cd.png',
-                    'main_name' => 'Дверь ProfilDoors (Профиль Дорс) ',
-                    'short_description' => '<ul>
-        <li>Экологически безопасное влагостойкое матовое покрытие. Производство Renolit, Германия. Устойчивость к повреждениям и перепадам температуры.</li>
-        <li>Сборно-разборная конструкция. Полотно изготовлено из отдельных элементов (царг: филенка, стоевая, поперечина). Любой составной элемент заменяется при необходимости. В основе царг используется массив сосны и МДФ.</li>
-        <li>Максимальная высота полотен &ndash; 2300 мм, максимальная ширина &ndash; 1000 мм. Шаг нестандарта &ndash; 50 мм.</li>
-        <li><span style="font-size: 14pt;"><strong>Стоимость нестандартных дверей уточняйте у менеджера.</strong></span></li>
-        </ul>'
-                ],*/
-        'https://profildoors.ru/catalog/seriya_zn/' => [
-            'additional_image' => 'https://static.insales-cdn.com/images/products/1/7263/618396767/KSHT1.jpg',
-            'main_name' => 'Дверь ProfilDoors (Профиль Дорс) ',
-            'short_description' => '<ul>
-<li>Экологически безопасное влагостойкое покрытие, с новейшей эксклюзивной структурой, идеально передающей срез натурального дерева. Производство Renolit, Германия. Устойчивость к повреждениям и перепадам температуры.</li>
-<li>Каркасно-щитовая дверь состоит из каркаса (брус сосны по периметру), наполнения (мелкоячеистая сота для обычной двери и трубчатое ДСП для усиленной) и щита &ndash; листа МДФ с покрытием или грунтовкой.</li>
-<li>Стандартная высота полотна не более 2100 мм. Возможно изготовление нестандарта по высоте с шагом 50 мм, но не выше 2600 мм при стандартном погонаже, с погонажем INVISIBLE - до 3000 мм., максимальная ширина &ndash; 1000 мм. Шаг нестандарта &ndash; 50 мм.</li>
-<li><span style="font-size: 14pt;"><strong>Стоимость нестандартных дверей уточняйте у менеджера.</strong></span></li>
-</ul>'
+        'https://profildoors.ru/catalog/seriya_pa/' => [
+            'category' => 'Коллекции с инновационным эмалевым покрытием',
+            'subCategory' => 'Серия PA',
         ],
+        'https://profildoors.ru/catalog/seriya_pd/' => [
+            'category' => 'Коллекции с инновационным эмалевым покрытием',
+            'subCategory' => 'Серия PD',
+        ],
+        'https://profildoors.ru/catalog/seriya_p/' => [
+            'category' => 'Коллекции с инновационным эмалевым покрытием',
+            'subCategory' => 'Серия P',
+        ],
+        'https://profildoors.ru/catalog/seriya_pm/' => [
+            'category' => 'Коллекции с инновационным эмалевым покрытием',
+            'subCategory' => 'Серия PM',
+        ],
+        'https://profildoors.ru/catalog/seriya_pw/' => [
+            'category' => 'Коллекции с инновационным эмалевым покрытием',
+            'subCategory' => 'Серия PW',
+        ],
+        'https://profildoors.ru/catalog/seriya_la/' => [
+            'category' => 'Коллекции с глянцевым покрытием',
+            'subCategory' => 'Серия LA',
+        ],
+        'https://profildoors.ru/catalog/seriya_lk/' => [
+            'category' => 'Коллекции с глянцевым покрытием',
+            'subCategory' => 'Серия LK',
+        ],
+        'https://profildoors.ru/catalog/seriya_n/' => [
+            'category' => 'Коллекции с древесным покрытием',
+            'subCategory' => 'Серия N',
+        ],
+        'https://profildoors.ru/catalog/seriya_na/' => [
+            'category' => 'Коллекции с древесным покрытием',
+            'subCategory' => 'Серия NA',
+        ]
     ];
+    /*    protected $urls = [
+                    'https://profildoors.ru/catalog/seriya_pd/' => [
+                        'additional_image' => 'https://static.insales-cdn.com/r/3G--XWQa9xY/rs:fit:1000:1000:1/plain/images/products/1/7956/617422612/cd.png',
+                        'main_name' => 'Дверь ProfilDoors (Профиль Дорс) ',
+                    ],
+            'https://profildoors.ru/catalog/seriya_pw/' => [
+                'additional_image' => 'https://static.insales-cdn.com/images/products/1/7263/618396767/KSHT1.jpg',
+                'main_name' => 'Дверь ProfilDoors (Профиль Дорс) ',
+                'short_description' => '<ul>
+    <li>Экологически безопасное влагостойкое покрытие, с новейшей эксклюзивной структурой, идеально передающей срез натурального дерева. Производство Renolit, Германия. Устойчивость к повреждениям и перепадам температуры.</li>
+    <li>Каркасно-щитовая дверь состоит из каркаса (брус сосны по периметру), наполнения (мелкоячеистая сота для обычной двери и трубчатое ДСП для усиленной) и щита &ndash; листа МДФ с покрытием или грунтовкой.</li>
+    <li>Стандартная высота полотна не более 2100 мм. Возможно изготовление нестандарта по высоте с шагом 50 мм, но не выше 2600 мм при стандартном погонаже, с погонажем INVISIBLE - до 3000 мм., максимальная ширина &ndash; 1000 мм. Шаг нестандарта &ndash; 50 мм.</li>
+    <li><span style="font-size: 14pt;"><strong>Стоимость нестандартных дверей уточняйте у менеджера.</strong></span></li>
+    </ul>'
+            ],
+        ];*/
     protected $file;
     protected $additionalImage;
-    protected $mainName;
+    protected $mainName = 'Дверь ProfilDoors (Профиль Дорс) ';
     protected $shortDescription;
     protected $filterColors = [];
     protected $filterGlasses = [];
     protected $filterMoldings = [];
     protected $filterInserts = [];
     protected $filterEdges = [];
+    protected $filterProfiles = [];
     protected $models = [];
     protected $products = [];
     protected $colorName;
     protected $colorKey;
     protected $count = 0;
+    protected $category = '';
+    protected $subCategory1 = '';
 
 
     protected $canvasSizes = [
@@ -87,75 +121,93 @@ class ProfilDoors extends Command
      */
     public function handle()
     {
-        foreach ($this->urls as $url => $data) {
+        $filename = 'profilDoorsN.csv';
+        $this->file = fopen($filename, 'w');
+        fputcsv($this->file, ProfilProduct::$headers, "\t");
+        foreach ($this->urls as $url => $main) {
+            $this->filterColors = [];
+            $this->filterGlasses = [];
+            $this->filterEdges = [];
+            $this->filterProfiles = [];
+            $this->filterInserts = [];
+            $this->filterMoldings = [];
+            $this->category = $main['category'];
+            $this->subCategory1 = $main['subCategory'];
+            $this->error($url);
             $html = file_get_contents($url);
-            $this->additionalImage = $data['additional_image'];
-            $this->mainName = $data['main_name'];
-            $this->shortDescription = $data['short_description'];
+            /*            $this->additionalImage = $data['additional_image'];
+                        $this->mainName = $data['main_name'];*/
             $crawler = new Crawler($html);
+            $this->shortDescription = $this->getShortDescription($crawler);
+//            $this->shortDescription = $data['short_description'];
             $this->models = $this->getModels($crawler);
             $this->getFilters($crawler);
-//            dd($this->filterColors, $this->filterInserts, $this->filterGlasses, $this->filterEdges);
-            foreach ($this->filterColors as $colorKey => $color) {
-                $this->error($color);
-                $this->colorKey = $colorKey;
-                $this->colorName = $color;
-                $filename = 'profil-series-zn-'.$this->colorKey.'.csv';
-                $this->file = fopen($filename, 'w');
-                fputcsv($this->file, ProfilProduct::$headers, "\t");
-                foreach ($this->models as $model => $modelUrl) {
-                    $variantUrls = $this->getVariantUrls($modelUrl, $colorKey);
-                    foreach ($variantUrls as $variantUrl) {
-                        $this->parseProduct($variantUrl);
-                    }
+//            dd($this->filterColors, $this->filterInserts, $this->filterGlasses, $this->filterEdges, $this->filterProfiles);
+            foreach ($this->models as $modelUrl) {
+                $variantUrls = $this->getVariantUrls($modelUrl);
+                if (empty($variantUrls)) {
+                    $variantUrls[] = self::URL . $modelUrl;
+                }
+
+                foreach ($variantUrls as $variantUrl) {
+                    $this->parseProduct($variantUrl);
                 }
             }
         }
     }
 
+    private function getShortDescription(Crawler $crawler)
+    {
+        $description = '';
+        $node = $crawler->filter('div.series-header-text');
+        if (count($node) > 0) {
+            $description = $node->text();
+        }
+        return $description;
+    }
+
     private function getImages(Crawler $crawler)
     {
-        $images = self::URL.$crawler->filter('div.new-catalogue-detail-photo > a')->attr('href');
+        $images = '';
+        $node = $crawler->filter('div.new-catalogue-detail-photo > a');
+        if (count($node) > 0) {
+            $images = self::URL . $node->attr('href');
+        }
         if (!empty($this->additionalImage)) {
-            $images .= ' '.$this->additionalImage;
+            $images .= ' ' . $this->additionalImage;
         }
         return $images;
     }
 
-    private function getColors($nodes): array
-    {
-        $colors = [];
-        foreach ($nodes as $node) {
-            $colorNode = new Crawler($node);
-            $url = $colorNode->filter('a')->attr('data-xml-id');
-            $name = $colorNode->text();
-            $colors[$name] = $url;
-        }
-        return $colors;
-    }
-
     private function getProductName(ProfilProduct $product)
     {
-        $name = $this->mainName.'Модель '.$product->model;
+        $name = $this->mainName . 'Модель ' . $product->model;
         if (!empty($product->color)) {
-            $name .= ' / Цвет '.$product->color;
+            $name .= ' / Цвет ' . $product->color;
         }
         if (!empty($product->glass)) {
-            $name .= ' / Стекло '.$product->glass;
+            $name .= ' / Стекло ' . $product->glass;
         }
         if (!empty($product->insert)) {
-            $name .= ' / Вставка '.$product->insert;
+            $name .= ' / Вставка ' . $product->insert;
+        }
+        if (!empty($product->profile)) {
+            $name .= ' / Профиль ' . $product->profile;
         }
         if (!empty($product->edge)) {
-            $name .= ' / Кромка '.$product->edge;
+            $name .= ' / Кромка ' . $product->edge;
         }
         return $name;
     }
 
     private function getProductDescription(Crawler $crawler)
     {
-        $description = $crawler->filter('div.tab-content-padding')->outerHtml();
-        $description = str_replace('дилеров', 'менеджеров', $description);
+        $description = '';
+        $node = $crawler->filter('div.tab-content-padding');
+        if (count($node) > 0) {
+            $description = $node->outerHtml();
+            $description = str_replace('дилеров', 'менеджеров', $description);
+        }
         return $description;
     }
 
@@ -177,6 +229,9 @@ class ProfilDoors extends Command
                     break;
                 case 'Кромка':
                     $this->setFilterEdges($block);
+                    break;
+                case 'Профиль':
+                    $this->setFilterProfiles($block);
                     break;
                 default:
                     break;
@@ -232,20 +287,56 @@ class ProfilDoors extends Command
         }
     }
 
-    private function getVariantUrls(string $url, string $color)
+    private function setFilterProfiles($node)
     {
-        $url = self::URL.$url.'?';
+        $crawler = new Crawler($node);
+        $filterNodes = $crawler->filter('div.catalog-filter-selector-item');
+        foreach ($filterNodes as $filterNode) {
+            $currentNode = new Crawler($filterNode);
+            $value = $currentNode->filter('input')->attr('value');
+            $name = $currentNode->text();
+            $this->filterProfiles[$name] = $value;
+        }
+    }
+
+    private function getVariantUrls(string $url)
+    {
+        $url = self::URL . $url;
         $urls = [];
-        foreach ($this->filterGlasses as $glass) {
-            foreach ($this->filterEdges as $edge) {
-                $urls[] = $url.'color='.$color.'&'.'glass='.$glass.'&'.'edge='.$edge;
+        foreach ($this->filterColors as $colorKey => $color) {
+            if (empty($this->filterInserts) && empty($this->filterGlasses) && empty($this->filterProfiles)) {
+                $urlColor = $url . '?color=' . $colorKey;
+                $urls[] = $urlColor;
+                continue;
+            }
+            if (empty($this->filterInserts) && empty($this->filterGlasses)) {
+                foreach ($this->filterProfiles as $profile) {
+                    $urls[] = $url . '?color=' . $colorKey . '&' . 'profile_color=' . $profile;
+                }
+                continue;
+            }
+            foreach ($this->filterGlasses as $glass) {
+                if (empty($this->filterEdges) && empty($this->filterProfiles)) {
+                    $urls[] = $url . '?color=' . $colorKey . '&' . 'glass=' . $glass;
+                    continue;
+                }
+                foreach ($this->filterEdges as $edge) {
+                    $urls[] = $url . '?color=' . $colorKey . '&' . 'glass=' . $glass . '&' . 'edge=' . $edge;
+                }
+                foreach ($this->filterProfiles as $profile) {
+                    $urls[] = $url . '?color=' . $colorKey . '&' . 'glass=' . $glass . '&' . 'profile_color=' . $profile;
+                }
+            }
+            foreach ($this->filterInserts as $insert) {
+                foreach ($this->filterEdges as $edge) {
+                    $urls[] = $url . '?color=' . $colorKey . '&' . 'glass_insert=' . $insert . '&' . 'edge=' . $edge;
+                }
+                foreach ($this->filterProfiles as $profile) {
+                    $urls[] = $url . '?color=' . $colorKey . '&' . 'glass_insert=' . $insert . '&' . 'profile_color=' . $profile;
+                }
             }
         }
-        foreach ($this->filterInserts as $insert) {
-            foreach ($this->filterEdges as $edge) {
-                $urls[] = $url.'color='.$color.'&'.'glass_insert='.$insert.'&'.'edge='.$edge;
-            }
-        }
+
         return $urls;
     }
 
@@ -264,11 +355,14 @@ class ProfilDoors extends Command
 
     private function parseProduct($url)
     {
-        $parsingUrl = $url;
+        $parsingUrl = str_replace(" ", "%20", $url);
+        $parsingUrl .= '&glass_color=Not+selected';
         $this->info($parsingUrl);
-        $html = file_get_contents($parsingUrl);
+        $html = @file_get_contents($parsingUrl);
         $crawler = new Crawler($html);
         $product = new ProfilProduct();
+        $product->category = $this->category;
+        $product->subCategory1 = $this->subCategory1;
         $product->parsingUrl = $parsingUrl;
         $product->image = $this->getImages($crawler);
         $product->description = $this->getProductDescription($crawler);
@@ -279,6 +373,7 @@ class ProfilDoors extends Command
             $node = new Crawler($paramNode);
             $title = $node->filter('div.new-catalogue-detail-params-title')->text();
             $value = $node->filter('div.new-catalogue-detail-params-value')->text();
+//            echo  $title . " - " . $value . "\n";
             switch ($title) {
                 case 'Цвет':
                     $product->color = $value;
@@ -295,14 +390,14 @@ class ProfilDoors extends Command
                 case 'Вставка':
                     $product->insert = $value;
                     break;
+                case 'Цвет профиля':
+                    $product->profile = $value;
+                    break;
                 default:
                     break;
             }
         }
-        if ($product->color != $this->colorName) {
-            return;
-        }
-        $key = $product->model.$product->color.$product->glass.$product->insert.$product->edge;
+        $key = $product->model . $product->color . $product->glass . $product->insert . $product->edge . $product->profile;
         if (in_array($key, $this->products)) {
             return;
         }
