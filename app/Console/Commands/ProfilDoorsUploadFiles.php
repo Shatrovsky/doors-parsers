@@ -6,6 +6,7 @@ use App\Models\ProfilProduct;
 use Illuminate\Console\Command;
 use Illuminate\Support\Arr;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -43,16 +44,21 @@ class ProfilDoorsUploadFiles extends Command
      */
     public function handle()
     {
-        $source = fopen('profilDoorsUtf8_2.csv', 'r');
+        $source = fopen('profilDoorsUtf8_1.csv', 'r');
         $destination = fopen('profilDoorsFiles_1.csv', 'w');
         $i = 0;
         $fileUpload = '';
         $fileUploaded = '';
         while ($line = fgetcsv($source, 0, ";")) {
             if ($i > 0) {
-                if ($fileUpload != $line[20] && empty($line[42])) {
-                    $fileUpload = $line[20];
-                    $fileUploaded = $this->uploadFile($line[20]);
+                for ($i = 0; $i < 3; $i++) {
+                    if ($fileUpload != $line[20] && empty($line[42])) {
+                        $fileUpload = $line[20];
+                        $fileUploaded = $this->uploadFile($line[20], $line[38]);
+                        if ($fileUploaded != '') {
+                            break;
+                        }
+                    }
                 }
                 $line[42] = $fileUploaded;
             } else {
@@ -63,30 +69,50 @@ class ProfilDoorsUploadFiles extends Command
         }
     }
 
-    private function uploadFile(string $filename): string
+    private function uploadFile(string $url, string $model): string
     {
-        $uploadFile = '/images/public_html/' . basename($filename);
-//        try {
-        $content = file_get_contents($filename);
-        $imageData = imagecreatefrompng($filename);
-        dd($imageData);
-        if (!$content) {
-            return '';
+        $this->alert("Загружается файл: " . $url);
+        $fileName = md5(microtime()) . ".jpg";
+        $tempName = "profilDoors/" . $fileName;
+        $uploadFile = '/images/public_html/' . $model . "/" . $fileName;
+        try {
+            $arrayFile = explode(".", $url);
+            if (Arr::last($arrayFile) == 'png') {
+                $input = imagecreatefrompng($url);
+                $width = imagesx($input);
+                $height = imagesy($input);
+                $output = imagecreatetruecolor($width, $height);
+                $white = imagecolorallocate($output, 255, 255, 255);
+                imagefilledrectangle($output, 0, 0, $width, $height, $white);
+                imagecopy($output, $input, 0, 0, 0, 0, $width, $height);
+                imagejpeg($output, $tempName);
+                $this->info("Сохранен файл: " . $tempName);
+                $content = file_get_contents($tempName);
+            } else {
+                $content = file_get_contents($url);
+            }
+            Storage::disk('ftp')->put($uploadFile, $content);
+            $this->info("Загружен файл: " . $tempName);
+            $fileUploaded = self::URL . $model . "/" . $fileName;
+            $headers = @get_headers($fileUploaded);
+            if (strpos($headers[0], '200') != false) {
+                $this->warn("Файл {$fileUploaded} загружен");
+            } else {
+                $this->warn("Файл {$fileUploaded} не загружен");
+            }
+        } catch (\Exception $exception) {
+            Log::channel('profilDoors')->error("Файл {$url} не загружен");
+            Log::channel('profilDoors')->error("Временный файл {$tempName}");
+            Log::channel('profilDoors')->error("Фтп файл {$uploadFile}");
+            $this->error("Файл {$url} не загружен");
+            $fileUploaded = '';
         }
-        Storage::disk('ftp')->put($uploadFile, $content);
-        $fileUploaded = self::URL . basename($filename);
-        $headers = @get_headers($fileUploaded);
-        if (strpos($headers[0], '200') != false) {
-            $this->info("Файл {$fileUploaded} загружен");
-        } else {
-            $this->warn("Файл {$fileUploaded} не загружен");
-        }
-        /*        }
-                catch (\Exception $exception){
-                    $this->error( "Файл {$filename} не загружен");
-                    $fileUploaded = '';
-                }*/
+
         return $fileUploaded;
+    }
+
+    private function pngToJpg(string $source)
+    {
     }
 
     private function getContent(string $filename)
