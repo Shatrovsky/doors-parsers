@@ -44,28 +44,30 @@ class ProfilDoorsUploadFiles extends Command
      */
     public function handle()
     {
-        $source = fopen('profilDoorsUtf8_1.csv', 'r');
-        $destination = fopen('profilDoorsFiles_1.csv', 'w');
-        $i = 0;
+        $source = fopen('profilDoorsFiles1.csv', 'r');
+        $destination = fopen('profilDoorsFiles2.csv', 'w');
+        $j = 0;
         $fileUpload = '';
         $fileUploaded = '';
         while ($line = fgetcsv($source, 0, ";")) {
-            if ($i > 0) {
-                for ($i = 0; $i < 3; $i++) {
-                    if ($fileUpload != $line[20] && empty($line[42])) {
+            if ($j > 0) {
+                if (empty($line[42])) {
+                    if ($fileUpload != $line[20]) {
                         $fileUpload = $line[20];
                         $fileUploaded = $this->uploadFile($line[20], $line[38]);
                         if ($fileUploaded != '') {
-                            break;
+                            if (strpos($fileUploaded, $line[38]) === false) {
+                                dd($fileUploaded);
+                            }
                         }
                     }
+                    $line[42] = $fileUploaded;
                 }
-                $line[42] = $fileUploaded;
             } else {
                 $line[42] = 'Новое фото';
             }
-            fputcsv($destination, $line);
-            $i++;
+            fputcsv($destination, $line, ";");
+            $j++;
         }
     }
 
