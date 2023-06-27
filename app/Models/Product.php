@@ -6,6 +6,8 @@ namespace App\Models;
 
 class Product
 {
+    public $category = 'Столы';
+    public $subCategory = '';
     public $id = '';
     public $name = '';
     public $nameUrl = '';
@@ -25,7 +27,6 @@ class Product
     public $dimensions = '';
     public $image = '';
     public $videoUrl = '';
-    public $canvasSize = '';
     public $variantId = '';
     public $artikul = '';
     public $barcode = '';
@@ -36,10 +37,27 @@ class Product
     public $count = 100;
     public $weight = '';
     public $variantUrl = '';
-    public $manufacturer = 'KAPELLI ';
+    public $manufacturer = 'KENNER ';
     public $parsingUrl = '';
+    public $commonColor = '';
+    public $commonSize = '';
+    public $tableColor = '';
+    public $tableCoverage = '';
+    public $tableMaterial = '';
+    public $tableGlassDepth = '';
+    public $tableMainDepth = '';
+    public $mechanismType = '';
+    public $mechanismCustom = '';
+    public $insertType = '';
+    public $insertMaterial = '';
+    public $supportColor = '';
+    public $supportMaterial = '';
+    public $supportCoverage = '';
+    public $supportCustom = '';
 
     public static $headers = [
+        'Категория',
+        'Подкатегория',
         'ID товара',
         'Название товара или услуги',
         'Название товара в URL',
@@ -59,7 +77,6 @@ class Product
         'Габариты',
         'Изображения',
         'Ссылка на видео',
-        'Свойство: Размер полотна',
         'ID варианта',
         'Артикул',
         'Штрих-код',
@@ -71,7 +88,22 @@ class Product
         'Вес',
         'Изображения варианта',
         'Параметр: Производитель',
-        'Параметр: Ссылка на донер'
+        'Параметр: Ссылка на донер',
+        'Параметр: Общие|Цвет',
+        'Параметр: Общие|Размер',
+        'Параметр: Столешница|Цвет',
+        'Параметр: Столешница|Покрытие',
+        'Параметр: Столешница|Материал',
+        'Параметр: Столешница|Толщина стекла',
+        'Параметр: Столешница|Толщина подложки',
+        'Параметр: Механизм|Тип',
+        'Параметр: Механизм|Особенности',
+        'Параметр: Вставка|Тип',
+        'Параметр: Вставка|Материал',
+        'Параметр: Опоры|Цвет',
+        'Параметр: Опоры|Материал',
+        'Параметр: Опоры|Покрытие',
+        'Параметр: Опоры|Особенности',
     ];
 
     public function exportCsv($file)
