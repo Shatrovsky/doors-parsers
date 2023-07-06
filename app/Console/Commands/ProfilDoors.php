@@ -24,7 +24,7 @@ class ProfilDoors extends Command
      */
     protected $description = 'Парсинг https://profildoors.ru/';
     protected $urls = [
-        'https://profildoors.ru/catalog/seriya_pa/' => [
+/*        'https://profildoors.ru/catalog/seriya_pa/' => [
             'category' => 'Коллекции с инновационным эмалевым покрытием',
             'subCategory' => 'Серия PA',
         ],
@@ -43,14 +43,18 @@ class ProfilDoors extends Command
         'https://profildoors.ru/catalog/seriya_pw/' => [
             'category' => 'Коллекции с инновационным эмалевым покрытием',
             'subCategory' => 'Серия PW',
-        ],
+        ],*/
         'https://profildoors.ru/catalog/seriya_la/' => [
             'category' => 'Коллекции с глянцевым покрытием',
             'subCategory' => 'Серия LA',
         ],
-        'https://profildoors.ru/catalog/seriya_lk/' => [
+        'https://profildoors.ru/catalog/series_l/' => [
             'category' => 'Коллекции с глянцевым покрытием',
-            'subCategory' => 'Серия LK',
+            'subCategory' => 'Серия L',
+        ],
+        'https://profildoors.ru/catalog/seriya_le/' => [
+            'category' => 'Коллекции с глянцевым покрытием',
+            'subCategory' => 'Серия LE',
         ],
         'https://profildoors.ru/catalog/seriya_n/' => [
             'category' => 'Коллекции с древесным покрытием',
@@ -121,7 +125,7 @@ class ProfilDoors extends Command
      */
     public function handle()
     {
-        $filename = 'profilDoorsN.csv';
+        $filename = 'profilDoorsL.csv';
         $this->file = fopen($filename, 'w');
         fputcsv($this->file, ProfilProduct::$headers, "\t");
         foreach ($this->urls as $url => $main) {
@@ -150,7 +154,11 @@ class ProfilDoors extends Command
                 }
 
                 foreach ($variantUrls as $variantUrl) {
-                    $this->parseProduct($variantUrl);
+                    try {
+                        $this->parseProduct($variantUrl);
+                    } catch (\Exception $exception) {
+                        $this->warn("Ошибка загрузки {$variantUrl} " . $exception->getMessage());
+                    }
                 }
             }
         }
@@ -207,7 +215,10 @@ class ProfilDoors extends Command
         if (count($node) > 0) {
             $description = $node->outerHtml();
             $description = str_replace('дилеров', 'менеджеров', $description);
+            $description = str_replace('src="/', 'src="' . self::URL . '/', $description);
+            $description = str_replace("\t", ' ', $description);
         }
+
         return $description;
     }
 
