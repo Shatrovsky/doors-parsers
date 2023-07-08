@@ -43,11 +43,11 @@ class ProfilDoors extends Command
         'https://profildoors.ru/catalog/seriya_pw/' => [
             'category' => 'Коллекции с инновационным эмалевым покрытием',
             'subCategory' => 'Серия PW',
-        ],*/
+        ],
         'https://profildoors.ru/catalog/seriya_la/' => [
             'category' => 'Коллекции с глянцевым покрытием',
             'subCategory' => 'Серия LA',
-        ],
+        ],*/
         'https://profildoors.ru/catalog/series_l/' => [
             'category' => 'Коллекции с глянцевым покрытием',
             'subCategory' => 'Серия L',
@@ -125,7 +125,7 @@ class ProfilDoors extends Command
      */
     public function handle()
     {
-        $filename = 'profilDoorsL.csv';
+        $filename = 'profilDoorsL2.csv';
         $this->file = fopen($filename, 'w');
         fputcsv($this->file, ProfilProduct::$headers, "\t");
         foreach ($this->urls as $url => $main) {
