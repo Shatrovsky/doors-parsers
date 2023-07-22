@@ -4,11 +4,10 @@
 namespace App\Models;
 
 
-class ProfilProduct
+class ProductChair
 {
-    public $category = '';
-    public $subCategory1 = '';
-    public $subCategory2 = '';
+    public $category = 'Стулья';
+    public $subCategory = '';
     public $id = '';
     public $name = '';
     public $nameUrl = '';
@@ -28,7 +27,6 @@ class ProfilProduct
     public $dimensions = '';
     public $image = '';
     public $videoUrl = '';
-    public $canvasSize = '';
     public $variantId = '';
     public $artikul = '';
     public $barcode = '';
@@ -39,20 +37,17 @@ class ProfilProduct
     public $count = 100;
     public $weight = '';
     public $variantUrl = '';
-    public $manufacturer = 'PROFILDOORS';
+    public $manufacturer = 'KENNER ';
     public $parsingUrl = '';
-    public $color = '';
-    public $glass = '';
-    public $molding = '';
-    public $model = '';
-    public $insert = '';
-    public $edge = '';
-    public $profile = '';
+    public $commonColor = '';
+    public $skeletonColor = '';
+    public $skeletonMaterial = '';
+    public $paddingColor = '';
+    public $paddingMaterial = '';
 
     public static $headers = [
-        'Корневая',
-        'Подкатегория1',
-        'Подкатегория2',
+        'Категория',
+        'Подкатегория',
         'ID товара',
         'Название товара или услуги',
         'Название товара в URL',
@@ -72,7 +67,6 @@ class ProfilProduct
         'Габариты',
         'Изображения',
         'Ссылка на видео',
-        'Свойство: Размер полотна',
         'ID варианта',
         'Артикул',
         'Штрих-код',
@@ -85,18 +79,16 @@ class ProfilProduct
         'Изображения варианта',
         'Параметр: Производитель',
         'Параметр: Ссылка на донер',
-        'Параметр: Цвет',
-        'Параметр: Стекло',
-        'Параметр: Молдинг',
-        'Параметр: Модель',
-        'Параметр: Вставка',
-        'Параметр: Кромка',
-        'Параметр: Профиль',
+        'Параметр: Общие|Цвет',
+        'Параметр: Каркас|Цвет',
+        'Параметр: Каркас|Материал',
+        'Параметр: Обивка|Цвет',
+        'Параметр: Обивка|Материал',
     ];
 
     public function exportCsv($file)
     {
-        $data = (array) $this;
+        $data = (array)$this;
         fputcsv($file, $data, "\t");
     }
 }

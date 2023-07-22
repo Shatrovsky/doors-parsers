@@ -52,7 +52,19 @@ return [
             'endpoint' => env('AWS_ENDPOINT'),
             'use_path_style_endpoint' => env('AWS_USE_PATH_STYLE_ENDPOINT', false),
         ],
+        'ftp' => [
+            'driver' => 'ftp',
+            'host' => 'vh420.timeweb.ru',
+            'username' => 'ch64046',
+            'password' => '773avozY5?vl',
 
+            // Optional FTP Settings...
+            // 'port' => env('FTP_PORT', 21),
+            // 'root' => env('FTP_ROOT'),
+            // 'passive' => true,
+            // 'ssl' => true,
+            // 'timeout' => 30,
+        ],
     ],
 
     /*
