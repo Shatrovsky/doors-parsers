@@ -48,35 +48,35 @@ class DveriComPriceUpdate extends Command
      */
     public function handle()
     {
-        $file = fopen('Obnovlenie-cen-shop_data-10.03.2023U.csv', 'r');
-        $fileOut = fopen('Obnovlenie-cen-shop_data-11.03.2023U.csv', 'w');
+        $file = fopen('BRAVO-FURNITURA-shop_data-21.07.2023Utf8.csv', 'r');
+        $fileOut = fopen('BRAVO-FURNITURA-shop_data-22.07.2023Utf8.csv', 'w');
         $priceList = $this->getContent();
         foreach ($priceList->products as $product) {
             $this->getPrice($product);
         }
-        $line = fgetcsv($file, 0, "\t");
-        fputcsv($fileOut, $line, "\t");
-        while (($line = fgetcsv($file, 0, "\t")) !== FALSE) {
+        $line = fgetcsv($file, 0, ";");
+        fputcsv($fileOut, $line, ";");
+        while (($line = fgetcsv($file, 0, ";")) !== FALSE) {
             $vendorCode = $line[3];
             if (empty($vendorCode)) {
-                $url = $line[7];
+                $url = $line[5];
                 if (!array_key_exists($url, $this->priceUrlList)) {
                     $this->info($url);
                 } else {
                     $price = $this->priceUrlList[$url];
-                    $line[6] = ceil($price['price_dealer']);
-                    $line[5] = ceil($line[6] * 1.3 - 4);
+                    $line[7] = ceil($price['price_dealer']);
+                    $line[6] = ceil($line[7] * 1.3 - 4);
                 }
             } else {
                 if (!array_key_exists($vendorCode, $this->priceList)) {
                     $this->error($vendorCode);
                 } else {
                     $price = $this->priceList[$vendorCode];
-                    $line[6] = ceil($price['price_dealer']);
-                    $line[5] = ceil($line[6] * 1.3 - 4);
+                    $line[7] = ceil($price['price_dealer']);
+                    $line[6] = ceil($line[7] * 1.3 - 4);
                 }
             }
-            fputcsv($fileOut, $line, "\t");
+            fputcsv($fileOut, $line, ";");
         }
     }
 
