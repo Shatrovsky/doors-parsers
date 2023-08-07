@@ -37,23 +37,19 @@ class Product
     public $count = 100;
     public $weight = '';
     public $variantUrl = '';
-    public $manufacturer = 'KENNER ';
+    public $manufacturer = 'ДИК ';
     public $parsingUrl = '';
-    public $commonColor = '';
-    public $commonSize = '';
-    public $tableColor = '';
-    public $tableCoverage = '';
-    public $tableMaterial = '';
-    public $tableGlassDepth = '';
-    public $tableMainDepth = '';
-    public $mechanismType = '';
-    public $mechanismCustom = '';
-    public $insertType = '';
-    public $insertMaterial = '';
+    public $width = '';
+    public $depth = '';
+    public $altitude = '';
     public $supportColor = '';
+    public $tableMaterial = '';
     public $supportMaterial = '';
-    public $supportCoverage = '';
-    public $supportCustom = '';
+    public $carcasMaterial = '';
+    public $warranty = '';
+    public $maxWeight = '';
+    public $tableForm = '';
+    public $mechanismType = '';
 
     public static $headers = [
         'Категория',
@@ -89,21 +85,18 @@ class Product
         'Изображения варианта',
         'Параметр: Производитель',
         'Параметр: Ссылка на донер',
-        'Параметр: Общие|Цвет',
-        'Параметр: Общие|Размер',
-        'Параметр: Столешница|Цвет',
-        'Параметр: Столешница|Покрытие',
-        'Параметр: Столешница|Материал',
-        'Параметр: Столешница|Толщина стекла',
-        'Параметр: Столешница|Толщина подложки',
-        'Параметр: Механизм|Тип',
-        'Параметр: Механизм|Особенности',
-        'Параметр: Вставка|Тип',
-        'Параметр: Вставка|Материал',
-        'Параметр: Опоры|Цвет',
-        'Параметр: Опоры|Материал',
-        'Параметр: Опоры|Покрытие',
-        'Параметр: Опоры|Особенности',
+
+        'Параметр: Ширина',
+        'Параметр: Глубина',
+        'Параметр: Высота',
+        'Параметр: Цвет опор',
+        'Параметр: Материал столешницы',
+        'Параметр: Материал опоры',
+        'Параметр: Материал каркаса',
+        'Параметр: Гарантийный срок',
+        'Параметр: Максимальная нагрузка',
+        'Параметр: Форма столешницы',
+        'Параметр: Механизм раскладки',
     ];
 
     public function exportCsv($file)
